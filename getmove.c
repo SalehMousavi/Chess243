@@ -1,3 +1,1 @@
-void getMove(int colour) {
-    
-}
+void getMove(int colour)
