@@ -1,0 +1,343 @@
+#include <pieces.h>
+#include <numbers.h>
+#define HEIGHT 30
+#define WIDTH 30
+
+volatile int pixel_buffer_start; // global variable
+short int Buffer1[240][512]; // 240 rows, 512 (320 + padding) columns
+short int Buffer2[240][512];
+volatile int * pixel_ctrl_ptr = (int *)0xFF203020;
+char Board[8][8] = {
+'R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R',
+'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P',
+'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
+'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
+'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
+'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
+'p', 'p', 'p', 'p', 'p', 'p', 'p', 'p', 
+'r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'}; //8x8 gameboard global variable
+
+void plot_pixel(int, int, short int);
+void wait_for_vsync();
+void clear_screen();
+void draw();
+void drawPiece(int, int, char);
+
+enum icon{
+    BlackPawn,
+    BlackRook,
+    BlackKnight,
+    BlackBishop,
+    BlackQueen,
+    BlackKing,
+    WhitePawn,
+    WhiteRook,
+    WhiteKnight,
+    WhiteBishop,
+    WhiteQueen,
+    WhiteKing
+};
+
+
+typedef struct numbers {//struct to hold the image of each number
+    short int width;
+    short int height;
+    short int* img;
+}number;
+
+
+typedef struct piece {//struct to hold the image of each icon, one with white background another with black
+    char type;
+    short int width;
+    short int height;
+    short int* img;
+    short int* imgW;
+}gamepiece;
+
+
+number numberIcons[8] = {
+    {
+        .width = 10,
+        .height = 23,
+        .img = Num1
+    },
+    {
+        .width = 10,
+        .height = 18,
+        .img = Num2
+    },
+    {
+        .width = 10,
+        .height = 18,
+        .img = Num3
+    },
+    {
+        .width = 10,
+        .height = 16,
+        .img = Num4
+    },
+    {
+        .width = 10,
+        .height = 19,
+        .img = Num5
+    },
+    {
+        .width = 10,
+        .height = 17,
+        .img = Num6
+    },
+    {
+        .width = 10,
+        .height = 17,
+        .img = Num7
+    },
+    {
+        .width = 10,
+        .height = 17,
+        .img = Num8
+    }
+
+};
+
+gamepiece gameIcons[12] = {
+    [BlackPawn] = {
+        .type = 'P',
+        .width = 25,
+        .height = 30,
+        .img = blackPawn,
+        .imgW = blackPawnW
+    },
+    [BlackRook] = {
+        .type = 'R',
+        .width = 25,
+        .height = 27,
+        .img = blackRook,
+        .imgW = blackRookW
+    },
+    [BlackKnight] = {
+        .type = 'N',
+        .width = 25,
+        .height = 27,
+        .img = blackKnight,
+        .imgW = blackKnightW
+    },
+    [BlackBishop] = {
+        .type = 'B',
+        .width = 27,
+        .height = 27,
+        .img = blackBishop,
+        .imgW = blackBishopW
+    },
+    [BlackQueen] = {
+        .type = 'Q',
+        .width = 29,
+        .height = 27,
+        .img = blackQueen,
+        .imgW = blackQueenW
+    },
+    [BlackKing] = {
+        .type = 'K',
+        .width = 27,
+        .height = 27,
+        .img = blackKing,
+        .imgW = blackKingW
+    },
+    [WhitePawn] = {
+        .type = 'p',
+        .width = 25,
+        .height = 30,
+        .img = whitePawn,
+        .imgW = whitePawnW
+    },
+    [WhiteRook] = {
+        .type = 'r',
+        .width = 25,
+        .height = 27,
+        .img = whiteRook,
+        .imgW = whiteRookW
+    },
+    [WhiteKnight] = {
+        .type = 'n',
+        .width = 25,
+        .height = 27,
+        .img = whiteKnight,
+        .imgW = whiteKnightW
+    },
+    [WhiteBishop] = {
+        .type = 'b',
+        .width = 25,
+        .height = 25,
+        .img = whiteBishop,
+        .imgW = whiteBishopW
+    },
+    [WhiteQueen] = {
+        .type = 'q',
+        .width = 25,
+        .height = 23,
+        .img = whiteQueen,
+        .imgW = whiteQueenW
+    },
+    [WhiteKing] = {
+        .type = 'k',
+        .width = 25,
+        .height = 25,
+        .img = whiteKing,
+        .imgW = whiteKingW
+    }
+};
+
+int main(void)
+{
+    
+    /* set front pixel buffer to Buffer 1 */
+    *(pixel_ctrl_ptr + 1) = (int) &Buffer1; // first store the address in the  back buffer
+    /* now, swap the front/back buffers, to set the front buffer location */
+    wait_for_vsync();
+    /* initialize a pointer to the pixel buffer, used by drawing functions */
+    pixel_buffer_start = (int) *pixel_ctrl_ptr;
+    clear_screen(); // pixel_buffer_start points to the pixel buffer
+
+    /* set back pixel buffer to Buffer 2 */
+    *(pixel_ctrl_ptr + 1) = (int) &Buffer2;
+    pixel_buffer_start = *(pixel_ctrl_ptr + 1); // we draw on the back buffer
+    clear_screen(); // pixel_buffer_start points to the pixel buffer
+	
+    while (1)
+    {
+        drawBoard();
+        draw();
+        wait_for_vsync(); // swap front and back buffers on VGA vertical sync
+		pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer
+    	
+	}
+}
+
+void drawBoard() {
+    int x, y;
+    for (int i = 0; i < 8; i++) {
+        for (int j = 0; j < 8; j++) {
+            map(i, j, &x, &y);
+            for (int m = 0; m < WIDTH; m++) {
+                for (int k = 0; k < HEIGHT; k++) {
+                    if((i+j) & 0b1) {
+                        plot_pixel(x+m, y+k, 0x0);
+                    }
+                    else {
+                        plot_pixel(x+m, y+k, 0xFFFF);
+                    }
+                }   
+            }
+        }
+    }
+    x = 20;
+    for (int i = 0; i < 8; i++) {
+        for (int m = 0; m < numberIcons[i].width; m++) {
+            for (int k = 0; k < numberIcons[i].height; k++) {
+                plot_pixel(x+m, (i*HEIGHT)+k+10, numberIcons[i].img[(k*numberIcons[i].width) + m]);
+            }   
+        }
+    }
+}
+
+void wait_for_vsync() {
+    *(pixel_ctrl_ptr) = 1;
+    int status = (*(pixel_ctrl_ptr +3)) & 0b1;
+    //poll status
+    while(status) {
+        status = (*(pixel_ctrl_ptr +3)) & 0b1;
+    }
+    //ready to swap
+    //swap buffers
+}
+
+void clear_screen() {
+    for (int x = 0; x < 320; x++) {
+        for (int y = 0; y < 240; y++) {
+            plot_pixel(x,y,0);
+        }
+    }
+    return;
+}
+
+void draw() {
+	for (int i = 0; i < 8; i++) {
+        for (int j = 0; j < 8; j++) {
+            drawPiece(i, j, Board[i][j]);
+        }
+    }
+}
+
+//maps rows and columns to top left pixel location
+void map(int row, int col, int* x, int* y) {//rows from 0 to 7 and 
+    *y = row * HEIGHT;
+    *x = 39 + col * WIDTH;
+}
+
+void drawPiece(int row, int col, char piece) {
+    int x, y, background;
+    enum icon iconNum;
+    
+    map(row, col, &x, &y);
+    switch (piece)
+    {
+    case 'o':
+        return;
+    break;
+    case 'P':
+        iconNum = BlackPawn;
+    break;
+    case 'R':
+        iconNum = BlackRook;
+    break;
+    case 'N':
+        iconNum = BlackKnight;
+    break;
+    case 'B':
+        iconNum = BlackBishop;
+    break;
+    case 'Q':
+        iconNum = BlackQueen;
+    break;
+    case 'K':
+        iconNum = BlackKing; 
+    break;
+    case 'p':
+        iconNum = WhitePawn;
+    break;
+    case 'r':
+        iconNum = WhiteRook;
+    break;
+    case 'n':
+        iconNum = WhiteKnight;
+    break;
+    case 'b':
+        iconNum = WhiteBishop;
+    break;
+    case 'q':
+        iconNum = WhiteQueen;
+    break;
+    case 'k':
+        iconNum = WhiteKing; 
+    break;
+    }
+    background = (row + col) & 0b1; //background 1 == white
+    for (int i = 0; i < gameIcons[iconNum].width; i++) {
+        for(int j = 0; j < gameIcons[iconNum].height; j++) {
+            if(background == 0) {
+                plot_pixel(x+i, y+j,gameIcons[iconNum].imgW[((j*(gameIcons[iconNum].width))+i)]);
+            }
+			else {
+				plot_pixel(x+i, y+j,gameIcons[iconNum].img[((j*(gameIcons[iconNum].width))+i)]);
+			}
+        }
+    }
+}
+
+void plot_pixel(int x, int y, short int line_color)
+{
+    volatile short int *one_pixel_address;
+	if(y < 240 && y >= 0 && x >= 0 && x < 320) {
+		one_pixel_address = pixel_buffer_start + (y << 10) + (x << 1);
+		*one_pixel_address = line_color;
+	}     
+}
