@@ -52,7 +52,7 @@ void clear_screen() {
     return;
 }
 
-void draw() {
+void drawPieces() {
 	for (int i = 0; i < 8; i++) {
         for (int j = 0; j < 8; j++) {
             drawPiece(i, j, Board[i][j]);

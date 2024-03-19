@@ -18,14 +18,19 @@ int main(void)
     *(pixel_ctrl_ptr + 1) = (int) &Buffer2;
     pixel_buffer_start = *(pixel_ctrl_ptr + 1); // we draw on the back buffer
     clear_screen(); // pixel_buffer_start points to the pixel buffer
-	
+	int colour = 0; //0 White 1 Black
+
     while (1)
-    {
+    {   
+        //draw board
         drawBoard();
-        draw();
+        drawPieces();
+        //get next move
+        getMove(colour);
+        //check legality
         wait_for_vsync(); // swap front and back buffers on VGA vertical sync
 		pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer
-    	
+    	colour = colour == 1? 0: 1;
 	}
 }
 

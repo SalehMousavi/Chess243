@@ -1,0 +1,3 @@
+void getMove(int colour) {
+    
+}
