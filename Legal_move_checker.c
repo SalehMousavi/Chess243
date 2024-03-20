@@ -5,17 +5,21 @@
 #include <stdlib.h> 
 
 /***************************************************************************************************************************
- ******************************************************** FUNCTIONS ***********************************************************
+ ******************************************************** FUNCTIONS ********************************************************
  ***************************************************************************************************************************/
 void print_board(); 
 void check_turn(); // this checks if the turn inputed by the user is valid, swaps turns if it is
 void position_legal(); // this checks if the piece is at the start end locations are valid, if the destination is able to be 
                     // reached by the piece in one move, and if there are peices around it.
 void obstructed_path(); // checks if the piece being moved has other pieces in its path, if so move is not legal unless its a knight
-void update_board();
+void if_checked(); // this function checks if a player is checked, if it is then only the moves that block the check are allowed or 
+                    // if the kind moves out of the checked position and doesnt enter another checked postion
+void check_blocker(); // this checks if the piece that is being moved is a check blocker, meaning if moving the piece to another 
+                    // square would check the player, such pieces are illegal to move
+void update_board(); // this function is called once the move has been cleared
 
 /***************************************************************************************************************************
- ******************************************************** GLOBALS ***********************************************************
+ ******************************************************** GLOBALS **********************************************************
  ***************************************************************************************************************************/
 char Board[8][8] = {
 'R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R', 
@@ -33,7 +37,7 @@ bool legal_move = false;
 
 
 /***************************************************************************************************************************
- ******************************************************** MAIN ***********************************************************
+ ******************************************************** MAIN *************************************************************
  ***************************************************************************************************************************/
 
 void main(){
