@@ -1,5 +1,7 @@
 #ifndef global
 #define global
+unsigned int mousex = 159;
+unsigned int mousey = 119;
 
 char Board[8][8] = {
 'R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R',

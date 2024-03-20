@@ -3,6 +3,11 @@
 #include <typedefs.h>
 #include <globals.h>
 
+volatile int pixel_buffer_start; // global variable
+short int Buffer1[240][512]; // 240 rows, 512 (320 + padding) columns
+short int Buffer2[240][512];
+volatile int * pixel_ctrl_ptr = (int *)0xFF203020;
+
 int main(void)
 {
     

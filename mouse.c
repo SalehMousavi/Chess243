@@ -1,9 +1,4 @@
-#define HEX3_HEX0_BASE 0xFF200020
-#define HEX5_HEX4_BASE 0xFF200030
-#define PS2_BASE	0xFF200100
-#define LEDS 0xFF200000
-	
-	
+#include <addressmap.h>
 void HEX_PS2(char b1, char b2, char b3) {
 	volatile int * HEX3_HEX0_ptr = (int *)HEX3_HEX0_BASE; 
 	volatile int * HEX5_HEX4_ptr = (int *)HEX5_HEX4_BASE;
@@ -21,19 +16,20 @@ void HEX_PS2(char b1, char b2, char b3) {
 		shift_buffer = shift_buffer >> 4;
 	}
     /* drive the hex displays */
-*(HEX3_HEX0_ptr) = *(int *)(hex_segs);
-*(HEX5_HEX4_ptr) = *(int *)(hex_segs + 4); 
+	*(HEX3_HEX0_ptr) = *(int *)(hex_segs);
+	*(HEX5_HEX4_ptr) = *(int *)(hex_segs + 4); 
 }
-
-int main(void) {
+void mouse(int* mousex, int*mousey) {
 /* Declare volatile pointers to I/O registers (volatile means that IO load
        and store instructions will be used to access these pointer locations,
        instead of regular memory loads and stores) */
 	volatile int* PS2_ptr = (int *)PS2_BASE; 
-	volatile int* LEDs = (int *)LEDS;
+	int mousex = 0, mousey = 0;
+	volatile int* LEDs = (int *)LED_BASE;
 	*(LEDs) = 0;
 	int PS2_data, RVALID;
 	unsigned char byte1 = 0, byte2 = 0, byte3 = 0;
+	
 	// PS/2 mouse needs to be reset (must be already plugged in)
 	*(PS2_ptr) = 0xFF; // reset
 	while (1) {
@@ -44,11 +40,18 @@ int main(void) {
 			byte1 = byte2;
 			byte2 = byte3;
 			byte3 = PS2_data & 0xFF;
-			*(LEDs) = byte1;
-			HEX_PS2(byte1, byte2, byte3);
+			HEX_PS2(byte1, byte2,  byte3);
 			if ((byte2 == (char)0xAA) && (byte3 == (char)0x00)) // mouse inserted; initialize sending of data 
 				*(PS2_ptr) = 0xF4;
+			else if(byte1 == 0x8) {
+				*mousex += (int)byte2;
+				*mousey += (int)byte3;
+			}
+			else if(byte1 == 0x9) {
+				*mousex += (int)byte2;
+				*mousey += (int)byte3;
+				return;//move has been selected
+			}
 		}
 	}
-	
 }
