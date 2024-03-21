@@ -1,4 +1,7 @@
-* The assembly language code below handles CPU exception processing. This
+#include <addressmap.h>
+#include <control_macros.h>
+
+/* The assembly language code below handles CPU exception processing. This
  * code should not be modified; instead, the C language code in the function
  * interrupt_handler() can be modified as needed for a given application.
 */
@@ -19,125 +22,78 @@ asm("subi ea, ea, 4"); /* Must decrement ea by one instruction
                                         * for external interupts, so that the
                                         * interrupted instruction will be run */
 asm("SKIP_EA_DEC:");
-asm("stw r1, 4(sp)"); // Save all registers asm("stw r2, 8(sp)")
-asm("stw
-asm("stw
-asm("stw
-asm("stw
-asm("stw
-asm("stw
-asm("stw
-asm("stw
-asm("stw
-asm("stw
-asm("stw
-asm("stw
-asm("stw
-asm("stw
-asm("stw
-asm("stw
-asm("stw
-asm("stw
-asm("stw
-asm("stw
-asm("stw
-asm("stw
-asm("stw
-
-//r25=bt // above) //r26=gp
-(skip r24 = et, because it is saved
-asm("call
-asm("ldw
-asm("ldw
-asm("ldw
-asm("ldw
-asm("ldw
-asm("ldw
-asm("ldw
-asm("ldw
-asm("ldw
-asm("ldw
-asm("ldw
-asm("ldw
-asm("ldw
-asm("ldw
-asm("ldw
-asm("ldw
-asm("ldw
-asm("ldw
-r5,  20(sp)");
-r6,  24(sp)");
-r7,  28(sp)");
-r8,  32(sp)");
-r9,  36(sp)");
-r10, 40(sp)");
-r11, 44(sp)");
-r12, 48(sp)");
-r13, 52(sp)");
-r14, 56(sp)");
-r15, 60(sp)");
-r16, 64(sp)");
-r17, 68(sp)");
-r18, 72(sp)");
-DE1-SOC COMPUTER SYSTEM WITH NIOS® II
-For Quartus® Prime 17.1
- // skip r27 because it is sp, and there is no point in saving this
-r28, 112(sp)");
-r29, 116(sp)");
-r30, 120(sp)");
-r31, 124(sp)");
-interrupt_handler"); // Call the C language interrupt handler
-r1, 4(sp)"); // Restore all registers r2, 8(sp)");
-r3, 12(sp)");
-r4, 16(sp)");
-asm("stw
-asm("stw
-asm("stw
-asm("stw
-asm("addi   fp,  sp, 128");
-//r28=fp //r29=ea //r30=ba //r31=ra
-November 2017
-
-asm("addi   sp,  sp, 128");
-    asm("eret");
+asm("stw r1, 4(sp)"); // Save all registers 
+asm("stw r2, 8(sp)");
+asm("stw r3, 12(sp)");
+asm("stw r4, 16(sp)");
+asm("stw r5, 20(sp)");
+asm("stw r6, 24(sp)");
+asm("stw r7, 28(sp)");
+asm("stw r8, 32(sp)");
+asm("stw r9, 36(sp)");
+asm("stw r10, 40(sp)");
+asm("stw r11, 44(sp)");
+asm("stw r12, 48(sp)");
+asm("stw r13, 52(sp)");
+asm("stw r14, 56(sp)");
+asm("stw r15, 60(sp)");
+asm("stw r16, 64(sp)");
+asm("stw r17, 68(sp)");
+asm("stw r18, 72(sp)");
+asm("stw r19, 76(sp)");
+asm("stw r20, 80(sp)");
+asm("stw r21, 84(sp)");
+asm("stw r22, 88(sp)");
+asm("stw r23, 92(sp)");
+asm("stw r25, 100(sp)");
+asm("stw r26, 104(sp)");
+// skip r27 because it is sp, and there is no point in saving this
+asm("stw r28, 112(sp)");
+asm("stw r29, 116(sp)");
+asm("stw r30, 120(sp)");
+asm("stw r31, 124(sp)");
+asm("addi fp, sp, 128");
+asm("call  interrupt_handler");
+asm("ldw r1, 4(sp)"); // Restore all registers 
+asm("ldw r2, 8(sp)");
+asm("ldw r3, 12(sp)");
+asm("ldw r4, 16(sp)");
+asm("ldw r5, 20(sp)");
+asm("ldw r6, 24(sp)");
+asm("ldw r7, 28(sp)");
+asm("ldw r8, 32(sp)");
+asm("ldw r9, 36(sp)");
+asm("ldw r10, 40(sp)");
+asm("ldw r11, 44(sp)");
+asm("ldw r12, 48(sp)");
+asm("ldw r13, 52(sp)");
+asm("ldw r14, 56(sp)");
+asm("ldw r15, 60(sp)");
+asm("ldw r16, 64(sp)");
+asm("ldw r17, 68(sp)");
+asm("ldw r18, 72(sp)");
+asm("ldw r19, 76(sp)");
+asm("ldw r20, 80(sp)");
+asm("ldw r21, 84(sp)");
+asm("ldw r22, 88(sp)");
+asm("ldw r23, 92(sp)");
+asm("ldw r24, 96(sp)");
+asm("ldw r25, 100(sp)");
+asm("ldw r26, 104(sp)");
+asm("ldw r28, 112(sp)");
+asm("ldw r29, 116(sp)");
+asm("ldw r30, 120(sp)");
+asm("ldw r31, 124(sp)");
+asm("addi sp, sp, 128");
+asm("eret");
 }
-DE1-SOC COMPUTER SYSTEM WITH NIOS® II
-For Quartus® Prime 17.1
- asm("ldw
-asm("ldw
-asm("ldw
-asm("ldw
-asm("ldw
-asm("ldw
-asm("ldw
-asm("ldw
-// skip r27 because it is sp, and we did not save this on the stack
-asm("ldw
-asm("ldw
-asm("ldw
-asm("ldw
-r28, 112(sp)");
-r29, 116(sp)");
-r30, 120(sp)");
-r31, 124(sp)");
-//r28=fp //r29=ea //r30=ba //r31=ra
-r19, 76(sp)");
-r20, 80(sp)");
-r21, 84(sp)");
-r22, 88(sp)");
-r23, 92(sp)");
-r24, 96(sp)");
-r25, 100(sp)"); // r25 = bt r26, 104(sp)"); // r26 = gp
-/******************************************************************************
- * Interrupt Service Routine
-subroutine.
+
+
 void interrupt_handler(void) { int ipending;
 NIOS2_READ_IPENDING(ipending);
-if (ipending & 0x1) // interval timer is interrupt level 0 {
-        interval_timer_ISR();
-    }
-if (ipending & 0x2) // pushbuttons are interrupt level 1 {
-        pushbutton_ISR();
-    }
-    // else, ignore the interrupt
-return; }
+if (ipending & 0x8) // PS2 mouse is interrupt level 7 
+{
+    mouse_ISR();
+} // else, ignore the interrupt
+return; 
+}

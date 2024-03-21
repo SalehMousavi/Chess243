@@ -1,4 +1,10 @@
 #include <addressmap.h>
+void setupMouse() {
+	volatile int* PS2_ptr = (int *)PS2_BASE; 
+	*(PS2_ptr) = 0xFF;
+	
+}
+
 void HEX_PS2(char b1, char b2, char b3) {
 	volatile int * HEX3_HEX0_ptr = (int *)HEX3_HEX0_BASE; 
 	volatile int * HEX5_HEX4_ptr = (int *)HEX5_HEX4_BASE;
@@ -19,6 +25,7 @@ void HEX_PS2(char b1, char b2, char b3) {
 	*(HEX3_HEX0_ptr) = *(int *)(hex_segs);
 	*(HEX5_HEX4_ptr) = *(int *)(hex_segs + 4); 
 }
+
 void mouse(int* mousex, int*mousey) {
 /* Declare volatile pointers to I/O registers (volatile means that IO load
        and store instructions will be used to access these pointer locations,
