@@ -43,11 +43,11 @@ void mouse(int* mousex, int*mousey) {
 			HEX_PS2(byte1, byte2,  byte3);
 			if ((byte2 == (char)0xAA) && (byte3 == (char)0x00)) // mouse inserted; initialize sending of data 
 				*(PS2_ptr) = 0xF4;
-			else if(byte1 == 0x8) {
+			else if(byte1 == 0x8 || byte1 == 0x18 || byte1 == 0x28 || byte1 == 0x38) {
 				*mousex += (int)byte2;
 				*mousey += (int)byte3;
 			}
-			else if(byte1 == 0x9) {
+			else if(byte1 == 0x9|| byte1 == 0x19 || byte1 == 0x29 || byte1 == 0x39) {
 				*mousex += (int)byte2;
 				*mousey += (int)byte3;
 				return;//move has been selected
