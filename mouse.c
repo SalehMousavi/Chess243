@@ -44,12 +44,20 @@ void mouse(int* mousex, int*mousey) {
 			if ((byte2 == (char)0xAA) && (byte3 == (char)0x00)) // mouse inserted; initialize sending of data 
 				*(PS2_ptr) = 0xF4;
 			else if(byte1 == 0x8 || byte1 == 0x18 || byte1 == 0x28 || byte1 == 0x38) {
-				*mousex += (int)byte2;
-				*mousey += (int)byte3;
+				if((*mousex != 319 || byte2 < 0 )&&(*mousex != 0 || byte2 > 0)) {
+					*mousex += (int)byte2;
+				}
+				if((*mousey != 239 || byte3 < 0 )&&(*mousey != 0 || byte3 > 0)) {
+					*mousey += (int)byte3;
+				}
 			}
 			else if(byte1 == 0x9|| byte1 == 0x19 || byte1 == 0x29 || byte1 == 0x39) {
-				*mousex += (int)byte2;
-				*mousey += (int)byte3;
+				if((*mousex != 319 || byte2 < 0 )&&(*mousex != 0 || byte2 > 0)) {
+					*mousex += (int)byte2;
+				}
+				if((*mousey != 239 || byte3 < 0 )&&(*mousey != 0 || byte3 > 0)) {
+					*mousey += (int)byte3;
+				}
 				return;//move has been selected
 			}
 		}
