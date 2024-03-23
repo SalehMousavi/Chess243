@@ -3,11 +3,6 @@
 #include <typedefs.h>
 #include <globals.h>
 
-volatile int pixel_buffer_start; // global variable
-short int Buffer1[240][512]; // 240 rows, 512 (320 + padding) columns
-short int Buffer2[240][512];
-volatile int * pixel_ctrl_ptr = (int *)0xFF203020;
-
 int main(void)
 {
     
@@ -24,7 +19,8 @@ int main(void)
     pixel_buffer_start = *(pixel_ctrl_ptr + 1); // we draw on the back buffer
     clear_screen(); // pixel_buffer_start points to the pixel buffer
 	int colour = 0; //0 White 1 Black
-
+    setupMouse();
+    setupInterrupts();
     while (1)
     {   
         //draw board

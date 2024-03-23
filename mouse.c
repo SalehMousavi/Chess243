@@ -1,8 +1,10 @@
 #include <addressmap.h>
+#include <globals.h>
+
 void setupMouse() {
 	volatile int* PS2_ptr = (int *)PS2_BASE; 
 	*(PS2_ptr) = 0xFF;
-	
+	*(PS2_ptr+1) = 1; //enable interrupt
 }
 
 void HEX_PS2(char b1, char b2, char b3) {
@@ -26,21 +28,13 @@ void HEX_PS2(char b1, char b2, char b3) {
 	*(HEX5_HEX4_ptr) = *(int *)(hex_segs + 4); 
 }
 
-void mouse(int* mousex, int*mousey) {
-/* Declare volatile pointers to I/O registers (volatile means that IO load
-       and store instructions will be used to access these pointer locations,
-       instead of regular memory loads and stores) */
+void mouse_ISR() {
 	volatile int* PS2_ptr = (int *)PS2_BASE; 
-	int mousex = 0, mousey = 0;
-	volatile int* LEDs = (int *)LED_BASE;
-	*(LEDs) = 0;
 	int PS2_data, RVALID;
+	volatile int* LEDs = (int *)LED_BASE;
 	unsigned char byte1 = 0, byte2 = 0, byte3 = 0;
-	
-	// PS/2 mouse needs to be reset (must be already plugged in)
-	*(PS2_ptr) = 0xFF; // reset
-	while (1) {
-		PS2_data = *(PS2_ptr); // read the Data register in the PS/2 port 
+
+	PS2_data = *(PS2_ptr); // read the Data register in the PS/2 port 
 		RVALID = PS2_data & 0x8000; // extract the RVALID field
 		if (RVALID) {
 		/* shift the next data byte into the display */
@@ -51,22 +45,23 @@ void mouse(int* mousex, int*mousey) {
 			if ((byte2 == (char)0xAA) && (byte3 == (char)0x00)) // mouse inserted; initialize sending of data 
 				*(PS2_ptr) = 0xF4;
 			else if(byte1 == 0x8 || byte1 == 0x18 || byte1 == 0x28 || byte1 == 0x38) {
-				if((*mousex != 319 || byte2 < 0 )&&(*mousex != 0 || byte2 > 0)) {
-					*mousex += (int)byte2;
+				if((mousex != 319 || byte2 < 0 )&&(mousex != 0 || byte2 > 0)) {
+					mousex += (int)byte2;
 				}
-				if((*mousey != 239 || byte3 < 0 )&&(*mousey != 0 || byte3 > 0)) {
-					*mousey += (int)byte3;
+				if((mousey != 239 || byte3 < 0 )&&(mousey != 0 || byte3 > 0)) {
+					mousey += (int)byte3;
 				}
 			}
 			else if(byte1 == 0x9|| byte1 == 0x19 || byte1 == 0x29 || byte1 == 0x39) {
-				if((*mousex != 319 || byte2 < 0 )&&(*mousex != 0 || byte2 > 0)) {
-					*mousex += (int)byte2;
+				if((mousex != 319 || byte2 < 0 )&&(mousex != 0 || byte2 > 0)) {
+					mousex += (int)byte2;
 				}
-				if((*mousey != 239 || byte3 < 0 )&&(*mousey != 0 || byte3 > 0)) {
-					*mousey += (int)byte3;
+				if((mousey != 239 || byte3 < 0 )&&(mousey != 0 || byte3 > 0)) {
+					mousey += (int)byte3;
 				}
-				return;//move has been selected
+				mousePressed = 1;
+				//move has been selected
 			}
 		}
-	}
+		return;
 }

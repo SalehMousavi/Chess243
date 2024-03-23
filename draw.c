@@ -5,10 +5,7 @@
 #include <pieces.h>
 #include <numbers.h>
 
-volatile int pixel_buffer_start; // global variable
-short int Buffer1[240][512]; // 240 rows, 512 (320 + padding) columns
-short int Buffer2[240][512];
-volatile int * pixel_ctrl_ptr = (int *)0xFF203020;
+
 
 number numberIcons[8] = {
     {
@@ -158,12 +155,21 @@ void drawBoard() {
             }
         }
     }
-    x = 20;
+
+    /*x = 20;
     for (int i = 0; i < 8; i++) {
         for (int m = 0; m < numberIcons[i].width; m++) {
             for (int k = 0; k < numberIcons[i].height; k++) {
                 plot_pixel(x+m, (i*HEIGHT)+k+10, numberIcons[i].img[(k*numberIcons[i].width) + m]);
             }   
+        }
+    }*/
+}
+
+void drawMouse() {
+    for(int i = 0; i < 4; i++) {
+        for(int j = 0; j < 4; j++) {
+            plot_pixel(mousex+i, mousey+j, 0xFFFF);
         }
     }
 }

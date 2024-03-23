@@ -89,11 +89,38 @@ asm("eret");
 }
 
 
-void interrupt_handler(void) { int ipending;
-NIOS2_READ_IPENDING(ipending);
-if (ipending & 0x8) // PS2 mouse is interrupt level 7 
-{
-    mouse_ISR();
-} // else, ignore the interrupt
-return; 
+void interrupt_handler(void) { 
+    int ipending;
+    NIOS2_READ_IPENDING(ipending);
+    if (ipending & 0x8) // PS2 mouse is interrupt level 7 
+    {
+        mouse_ISR();
+    } // else, ignore the interrupt
+    return; 
 }
+
+void setupInterrupts() {
+    NIOS2_WRITE_IENABLE(0x80);
+    NIOS2_WRITE_STATUS(1);
+}
+
+void main(void);
+void interrupt_handler(void); 
+void mouse_ISR(void);
+/* The assembly language code below handles CPU reset processing */
+void the_reset(void) __attribute__((section(".reset")));
+void the_reset(void)
+/*******************************************************************************
+ * Reset code. By giving the code a section attribute with the name ".reset" we
+ * allow the linker program to locate this code at the proper reset vector
+ * address. This code just calls the main program.
+ ******************************************************************************/
+{
+    asm(".set noat");
+    asm(".set nobreak");
+    asm("movia r2, main" );
+    asm("jmp r2");
+}
+
+ /* Instruct the assembler NOT to use reg at (r1) as * a temp register for performing optimizations */ nobreak"); /* Suppresses a warning message that says that * some debuggers corrupt regs bt (r25) and ba
+
