@@ -1,13 +1,15 @@
 #ifndef global
 #define global
-unsigned int mousex = 159;
-unsigned int mousey = 119;
-unsigned int mousePressed = 0;//for indicating if mouse was pressed
 volatile int pixel_buffer_start; // global variable
 short int Buffer1[240][512]; // 240 rows, 512 (320 + padding) columns
 short int Buffer2[240][512];
 volatile int * pixel_ctrl_ptr = (int *)0xFF203020;
-
+volatile unsigned int mousex = 159;
+volatile unsigned int mousey = 119;
+volatile unsigned int mousePressed = 0;//for indicating if mouse was pressed
+volatile unsigned int mouseBuffer;
+#define HEIGHT 30
+#define WIDTH 30
 char Board[8][8] = {
 'R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R',
 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P',

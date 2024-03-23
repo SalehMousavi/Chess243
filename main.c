@@ -3,9 +3,9 @@
 #include <typedefs.h>
 #include <globals.h>
 
-int main(void)
+void main(void)
 {
-    
+    int MoveRow, MoveCol;
     /* set front pixel buffer to Buffer 1 */
     *(pixel_ctrl_ptr + 1) = (int) &Buffer1; // first store the address in the  back buffer
     /* now, swap the front/back buffers, to set the front buffer location */
@@ -24,14 +24,20 @@ int main(void)
     while (1)
     {   
         //draw board
+		clear_screen();
         drawBoard();
         drawPieces();
-        //get next move
-        getMove(colour);
-        //check legality
+        drawMouse();
+        if(mousePressed) {
+            getMove(&MoveRow, &MoveCol);
+            checkMove(MoveRow,MoveCol,Colour,MoveValid);
+            if(MoveValid) {
+                colour = (colour == 1)? 0:  1;
+            }
+        }//make sure to enable interrupts for mouse after
+
         wait_for_vsync(); // swap front and back buffers on VGA vertical sync
 		pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer
-    	colour = colour == 1? 0: 1;
+    	
 	}
 }
-

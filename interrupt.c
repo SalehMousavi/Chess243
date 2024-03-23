@@ -92,23 +92,22 @@ asm("eret");
 void interrupt_handler(void) { 
     int ipending;
     NIOS2_READ_IPENDING(ipending);
-    if (ipending & 0x8) // PS2 mouse is interrupt level 7 
+    if (ipending & 0x80) // PS2 mouse is interrupt level 7 
     {
         mouse_ISR();
     } // else, ignore the interrupt
     return; 
 }
 
+
 void setupInterrupts() {
     NIOS2_WRITE_IENABLE(0x80);
     NIOS2_WRITE_STATUS(1);
+    return;
 }
 
-void main(void);
-void interrupt_handler(void); 
-void mouse_ISR(void);
 /* The assembly language code below handles CPU reset processing */
-void the_reset(void) __attribute__((section(".reset")));
+
 void the_reset(void)
 /*******************************************************************************
  * Reset code. By giving the code a section attribute with the name ".reset" we

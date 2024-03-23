@@ -1,11 +1,8 @@
-#define HEIGHT 30
-#define WIDTH 30
+
 #include <globals.h>
 #include <typedefs.h>
 #include <pieces.h>
 #include <numbers.h>
-
-
 
 number numberIcons[8] = {
     {
@@ -167,9 +164,15 @@ void drawBoard() {
 }
 
 void drawMouse() {
-    for(int i = 0; i < 4; i++) {
-        for(int j = 0; j < 4; j++) {
-            plot_pixel(mousex+i, mousey+j, 0xFFFF);
+	if(mousey > 239 || mousey < 0) {
+		mousey = 119;
+	}
+	else if(mousex > 319 || mousex < 0) {
+		mousex = 159;
+	}
+    for(int i = 0; i < 10; i++) {
+        for(int j = 0; j < 10; j++) {
+            plot_pixel(mousex+i, mousey+j, 0x025F);
         }
     }
 }
