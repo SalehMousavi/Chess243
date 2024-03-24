@@ -58,7 +58,7 @@ void main(void)
             }
             else if(undoMove == 1 && startedMove == 1) {
                 startedMove = 0;
-                undoMove = 1;
+                undoMove = 0;
             }
             mousePressed = 0;
             setupMouse();//enable interrupts from mouse

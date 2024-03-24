@@ -69,4 +69,5 @@ void checkLegality(int startingRow, int startingCol, int finalRow, int finalCol,
 void movePiece(int startingRow, int startingCol, int finalRow, int finalCol) {
     Board[finalRow][finalCol] = Board[startingRow][startingCol];
     Board[startingRow][startingCol] = 'o';
+    return;
 }

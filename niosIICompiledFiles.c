@@ -1755,7 +1755,7 @@ void main(void)
             }
             else if(undoMove == 1 && startedMove == 1) {
                 startedMove = 0;
-                undoMove = 1;
+                undoMove = 0;
             }
             mousePressed = 0;
             setupMouse();//enable interrupts from mouse
@@ -2016,6 +2016,7 @@ void checkLegality(int startingRow, int startingCol, int finalRow, int finalCol,
 void movePiece(int startingRow, int startingCol, int finalRow, int finalCol) {
     Board[finalRow][finalCol] = Board[startingRow][startingCol];
     Board[startingRow][startingCol] = 'o';
+    return;
 }
 
 void setupInterrupts() {
