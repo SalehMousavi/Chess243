@@ -101,10 +101,20 @@ do { dest = __builtin_rdctl(5); } while (0)
 
 #ifndef global
 #define global
+volatile int pixel_buffer_start; // global variable
+short int Buffer1[240][512]; // 240 rows, 512 (320 + padding) columns
+short int Buffer2[240][512];
+volatile int * pixel_ctrl_ptr = (int *)0xFF203020;
 volatile unsigned int mousex = 159;
 volatile unsigned int mousey = 119;
 volatile unsigned int mousePressed = 0;//for indicating if mouse was pressed
 volatile unsigned int mouseBuffer;
+volatile unsigned int undoMove = 0;
+#define HEIGHT 30
+#define WIDTH 30
+#define BLACK 0
+#define WHITE 1
+#define YELLOW 0xFFA0
 char Board[8][8] = {
 'R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R',
 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P',
@@ -1397,14 +1407,6 @@ typedef struct piece {//struct to hold the image of each icon, one with white ba
 
 #endif
 
-#define HEIGHT 30
-#define WIDTH 30
-
-volatile int pixel_buffer_start; // global variable
-short int Buffer1[240][512]; // 240 rows, 512 (320 + padding) columns
-short int Buffer2[240][512];
-volatile int * pixel_ctrl_ptr = (int *)0xFF203020;
-
 number numberIcons[8] = {
     {
         .width = 10,
@@ -1681,9 +1683,28 @@ void plot_pixel(int x, int y, short int line_color)
 	}     
 }
 
+void drawSelection(int Row, int Col) {
+    //draw top bars
+    int x = 39 + Col*WIDTH;
+    int y = Row*HEIGHT;
+    //draw top bars
+    for (int i = 0; i < WIDTH; i++) {
+        plot_pixel(x+i, y, YELLOW);
+        plot_pixel(x+i, y+HEIGHT-1, YELLOW);
+    }
+    //draw side bars
+    for (int i = 0; i < HEIGHT; i++) {
+        plot_pixel(x, y+i, YELLOW);
+        plot_pixel(x+WIDTH-1, y+i, YELLOW);
+    }
+    return;
+}
+
 void main(void)
 {
-    
+    short int moveRow, moveCol;
+    char startedMove = 0;
+    char startingRow, startingCol;
     /* set front pixel buffer to Buffer 1 */
     *(pixel_ctrl_ptr + 1) = (int) &Buffer1; // first store the address in the  back buffer
     /* now, swap the front/back buffers, to set the front buffer location */
@@ -1691,12 +1712,12 @@ void main(void)
     /* initialize a pointer to the pixel buffer, used by drawing functions */
     pixel_buffer_start = (int) *pixel_ctrl_ptr;
     clear_screen(); // pixel_buffer_start points to the pixel buffer
-
+    char moveValid = 0;
     /* set back pixel buffer to Buffer 2 */
     *(pixel_ctrl_ptr + 1) = (int) &Buffer2;
     pixel_buffer_start = *(pixel_ctrl_ptr + 1); // we draw on the back buffer
     clear_screen(); // pixel_buffer_start points to the pixel buffer
-	int colour = 0; //0 White 1 Black
+	char colour = WHITE; 
     setupMouse();
     setupInterrupts();
     while (1)
@@ -1705,15 +1726,31 @@ void main(void)
 		clear_screen();
         drawBoard();
         drawPieces();
+        if(startedMove == 1) {
+            drawSelection(startingRow, startingCol);
+        }
         drawMouse();
-        //get next move
-        //getMove(colour);
-        //check legality
+        if(mousePressed) {
+            getMove(&moveRow, &moveCol); //get the move position
+            checkMove(moveRow,moveCol,colour, &moveValid, startedMove); //check if there is a piece in that postion if just starting move
+            if(moveValid == 1 && startedMove == 0) {
+                startingRow = moveRow;
+                startingCol = moveCol;
+                startedMove = 1;
+            }
+            else if(undoMove == 1 && startedMove == 1) {
+                startedMove = 0;
+                undoMove = 0;
+            }
+            mousePressed = 0;
+            setupMouse();//enable interrupts from mouse
+        }//make sure to enable interrupts for mouse after
         wait_for_vsync(); // swap front and back buffers on VGA vertical sync
 		pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer
-    	//colour = colour == 1? 0: 1;
+    	
 	}
 }
+
 
 /* The assembly language code below handles CPU exception processing. This
  * code should not be modified; instead, the C language code in the function
@@ -1828,7 +1865,7 @@ void HEX_PS2(char b1, char b2, char b3) {
 	unsigned int shift_buffer, nibble;
 	unsigned char code;
 	int i;
-	shift_buffer = (b1 << 16) | (b2 << 8) | b3; 
+	shift_buffer = ((b1&0xFF) << 16) | ((b2&0xFF) << 8) | (b3&0xFF); 
 	for (i = 0; i < 6; ++i) {
 		nibble = shift_buffer & 0x0000000F; // character is in rightmost nibble 
 		code = seven_seg_decode_table[nibble];
@@ -1850,42 +1887,91 @@ void mouse_ISR() {
     byte3 = (char) (mouseBuffer & 0xFF);
 
 	PS2_data = *(PS2_ptr); // read the Data register in the PS/2 port 
-		RVALID = PS2_data & 0x8000; // extract the RVALID field
-		if (RVALID) {
-		/* shift the next data byte into the display */
-			byte1 = (char)byte2;
-			byte2 = (char)byte3;
-			byte3 = (char)(PS2_data & 0x0FF);
-			*(LEDs) = ((int)(byte2) & 0x0FF);
-			HEX_PS2(byte1, byte2,  byte3);
-			*(LEDs) = ((int)(byte1) & 0xFFF);
-			if ((byte2 == (char)0xAA) && (byte3 == (char)0x00)) // mouse inserted; initialize sending of data 
-				*(PS2_ptr) = 0xF4;
-			else if(byte1 == 0x8 || byte1 == 0x18 || byte1 == 0x28 || byte1 == 0x38) {
-				if((mousex != 319 || byte2 < 0 )&&(mousex != 0 || byte2 > 0)) {
-					mousex += byte2;
-				}
-				if((mousey != 239 || byte3 < 0 )&&(mousey != 0 || byte3 > 0)) {
-					mousey += byte3;
-				}
-                mouseBuffer = 0;
+	RVALID = PS2_data & 0x8000; // extract the RVALID field
+	if (RVALID) {
+	/* shift the next data byte into the display */
+		byte1 = (char)byte2;
+		byte2 = (char)byte3;
+		byte3 = (char)(PS2_data & 0x0FF);
+		*(LEDs) = ((int)(byte2) & 0x0FF);
+		HEX_PS2(byte1, byte2,  byte3);
+		*(LEDs) = ((int)(byte1) & 0xFFF);
+		if ((byte2 == (char)0xAA) && (byte3 == (char)0x00)) // mouse inserted; initialize sending of data 
+			*(PS2_ptr) = 0xF4;
+		else if(byte1 == 0x8 || byte1 == 0x18 || byte1 == 0x28 || byte1 == 0x38) {
+			if((mousex != 319 || byte2 < 0 )&&(mousex != 0 || byte2 > 0)) {
+				mousex += byte2;
 			}
-			else if(byte1 == 0x9 || byte1 == 0x19 || byte1 == 0x29 || byte1 == 0x39) {
-				if((mousex != 319 || byte2 < 0 )&&(mousex != 0 || byte2 > 0)) {
-					mousex += byte2;
-				}
-				if((mousey != 239 || byte3 < 0 )&&(mousey != 0 || byte3 > 0)) {
-					mousey += byte3;
-				}
-				mousePressed = 1;
-                mouseBuffer = 0;
-				//move has been selected
+			if((mousey != 239 || byte3 < 0 )&&(mousey != 0 || byte3 > 0)) {
+				mousey += byte3;
 			}
-            else {
-                mouseBuffer = ((byte1&0xFF) << 16) + ((byte2&0xFF) << 8) + (byte3&0xFF);
-            }
+			mouseBuffer = 0;
 		}
-		return;
+		else if(byte1 == 0x9 || byte1 == 0x19 || byte1 == 0x29 || byte1 == 0x39) {
+			if((mousex != 319 || byte2 < 0 )&&(mousex != 0 || byte2 > 0)) {
+				mousex += byte2;
+			}
+			if((mousey != 239 || byte3 < 0 )&&(mousey != 0 || byte3 > 0)) {
+				mousey += byte3;
+			}
+			mousePressed = 1;
+			*(PS2_ptr+1) = 0;
+			mouseBuffer = 0;
+			//move has been selected
+		}
+		else if(byte1 == 0xA || byte1 == 0x1A || byte1 == 0x2A || byte1 == 0x3A) {
+			mousePressed = 1;
+			mouseBuffer = 0;
+			*(PS2_ptr+1) = 0;
+			undoMove = 1;
+
+		}	//for checking if right clicker is pressed in that case reset their move
+		else {
+			mouseBuffer = ((byte1&0xFF) << 16) + ((byte2&0xFF) << 8) + (byte3&0xFF);
+		}
+	}
+	return;
+}
+
+void getMove(short int* moveRow, short int* moveCol) {
+   mousex = (int) (mousex & 0x1FF);
+   mousey = (int) (mousey & 0xFF);
+   printf("Mousex: %d, Mousey: %d\n", mousex, mousey);
+   *moveCol = (short int)((mousex - 39) / WIDTH);
+   *moveRow = (short int)(mousey / HEIGHT);
+   printf("MouseR: %d, MouseC: %d\n", *moveRow, *moveCol);
+   return;
+}
+
+void checkMove(short int moveRow, short int moveCol, char colour, char* moveValid, char startedMove) {
+    if(startedMove == 0) {//selecting a starting position for move
+        switch(colour) {
+            case BLACK: {
+                if(Board[moveRow][moveCol] > 'A' && Board[moveRow][moveCol] < 'Z' && Board[moveRow][moveCol] != 'o') {
+                    *(moveValid) = 1;
+                }
+                else {
+                    *(moveValid) = 0;
+                }
+                break;
+            }
+
+            case WHITE: {
+                if(Board[moveRow][moveCol] > 'a' && Board[moveRow][moveCol] < 'z' && Board[moveRow][moveCol] != 'o') {
+                    *(moveValid) = 1;
+                }
+                else {
+                    *(moveValid) = 0;
+                }
+                break;
+            }
+        }
+    }
+    else {//already selected starting position
+
+    }
+    
+    return;
 }
 
 void setupInterrupts() {

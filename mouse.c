@@ -16,7 +16,7 @@ void HEX_PS2(char b1, char b2, char b3) {
 	unsigned int shift_buffer, nibble;
 	unsigned char code;
 	int i;
-	shift_buffer = (b1 << 16) | (b2 << 8) | b3; 
+	shift_buffer = ((b1&0xFF) << 16) | ((b2&0xFF) << 8) | (b3&0xFF); 
 	for (i = 0; i < 6; ++i) {
 		nibble = shift_buffer & 0x0000000F; // character is in rightmost nibble 
 		code = seven_seg_decode_table[nibble];
@@ -66,11 +66,17 @@ void mouse_ISR() {
 				mousey += byte3;
 			}
 			mousePressed = 1;
-			*(PS2_ptr+1) = 1; //disable interrupt
+			*(PS2_ptr+1) = 0;
 			mouseBuffer = 0;
-			return;
 			//move has been selected
 		}
+		else if(byte1 == 0xA || byte1 == 0x1A || byte1 == 0x2A || byte1 == 0x3A) {
+			mousePressed = 1;
+			mouseBuffer = 0;
+			*(PS2_ptr+1) = 0;
+			undoMove = 1;
+
+		}	//for checking if right clicker is pressed in that case reset their move
 		else {
 			mouseBuffer = ((byte1&0xFF) << 16) + ((byte2&0xFF) << 8) + (byte3&0xFF);
 		}

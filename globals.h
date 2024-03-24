@@ -8,8 +8,12 @@ volatile unsigned int mousex = 159;
 volatile unsigned int mousey = 119;
 volatile unsigned int mousePressed = 0;//for indicating if mouse was pressed
 volatile unsigned int mouseBuffer;
+volatile unsigned int undoMove = 0;
 #define HEIGHT 30
 #define WIDTH 30
+#define BLACK 0
+#define WHITE 1
+#define YELLOW 0xFFA0
 char Board[8][8] = {
 'R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R',
 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P',

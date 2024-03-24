@@ -279,3 +279,20 @@ void plot_pixel(int x, int y, short int line_color)
 		*one_pixel_address = line_color;
 	}     
 }
+
+void drawSelection(int Row, int Col) {
+    //draw top bars
+    int x = 39 + Col*WIDTH;
+    int y = Row*HEIGHT;
+    //draw top bars
+    for (int i = 0; i < WIDTH; i++) {
+        plot_pixel(x+i, y, YELLOW);
+        plot_pixel(x+i, y+HEIGHT-1, YELLOW);
+    }
+    //draw side bars
+    for (int i = 0; i < HEIGHT; i++) {
+        plot_pixel(x, y+i, YELLOW);
+        plot_pixel(x+WIDTH-1, y+i, YELLOW);
+    }
+    return;
+}

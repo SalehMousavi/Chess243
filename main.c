@@ -5,7 +5,9 @@
 
 void main(void)
 {
-    int MoveRow, MoveCol;
+    short int moveRow, moveCol;
+    char startedMove = 0;
+    char startingRow, startingCol;
     /* set front pixel buffer to Buffer 1 */
     *(pixel_ctrl_ptr + 1) = (int) &Buffer1; // first store the address in the  back buffer
     /* now, swap the front/back buffers, to set the front buffer location */
@@ -13,12 +15,12 @@ void main(void)
     /* initialize a pointer to the pixel buffer, used by drawing functions */
     pixel_buffer_start = (int) *pixel_ctrl_ptr;
     clear_screen(); // pixel_buffer_start points to the pixel buffer
-
+    char moveValid = 0;
     /* set back pixel buffer to Buffer 2 */
     *(pixel_ctrl_ptr + 1) = (int) &Buffer2;
     pixel_buffer_start = *(pixel_ctrl_ptr + 1); // we draw on the back buffer
     clear_screen(); // pixel_buffer_start points to the pixel buffer
-	int colour = 0; //0 White 1 Black
+	char colour = WHITE; 
     setupMouse();
     setupInterrupts();
     while (1)
@@ -27,15 +29,25 @@ void main(void)
 		clear_screen();
         drawBoard();
         drawPieces();
+        if(startedMove == 1) {
+            drawSelection(startingRow, startingCol);
+        }
         drawMouse();
         if(mousePressed) {
-            getMove(&MoveRow, &MoveCol);
-            checkMove(MoveRow,MoveCol,Colour,MoveValid);
-            if(MoveValid) {
-                colour = (colour == 1)? 0:  1;
+            getMove(&moveRow, &moveCol); //get the move position
+            checkMove(moveRow,moveCol,colour, &moveValid, startedMove); //check if there is a piece in that postion if just starting move
+            if(moveValid == 1 && startedMove == 0) {
+                startingRow = moveRow;
+                startingCol = moveCol;
+                startedMove = 1;
             }
+            else if(undoMove == 1 && startedMove == 1) {
+                startedMove = 0;
+                undoMove = 1;
+            }
+            mousePressed = 0;
+            setupMouse();//enable interrupts from mouse
         }//make sure to enable interrupts for mouse after
-
         wait_for_vsync(); // swap front and back buffers on VGA vertical sync
 		pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer
     	
