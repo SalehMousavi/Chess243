@@ -8,6 +8,8 @@ void main(void)
     short int moveRow, moveCol;
     char startedMove = 0;
     char startingRow, startingCol;
+    char finalRow, finalCol;
+    char moveLegal = 0;
     /* set front pixel buffer to Buffer 1 */
     *(pixel_ctrl_ptr + 1) = (int) &Buffer1; // first store the address in the  back buffer
     /* now, swap the front/back buffers, to set the front buffer location */
@@ -40,6 +42,19 @@ void main(void)
                 startingRow = moveRow;
                 startingCol = moveCol;
                 startedMove = 1;
+            }
+            else if(moveValid == 1 && startedMove == 1 && undoMove != 1) {
+                finalRow = moveRow;
+                finalCol = moveCol;
+                checkLegality(startingRow, startingCol, finalRow, finalCol, &moveLegal);
+                if(moveLegal) {
+                    movePiece(startingRow, startingCol, finalRow, finalCol);
+                    colour = colour == WHITE? BLACK: WHITE;//change colour
+                    startedMove = 0;
+                }
+                else {
+                    startedMove = 1;
+                }
             }
             else if(undoMove == 1 && startedMove == 1) {
                 startedMove = 0;

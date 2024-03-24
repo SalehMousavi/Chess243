@@ -1705,6 +1705,8 @@ void main(void)
     short int moveRow, moveCol;
     char startedMove = 0;
     char startingRow, startingCol;
+    char finalRow, finalCol;
+    char moveLegal = 0;
     /* set front pixel buffer to Buffer 1 */
     *(pixel_ctrl_ptr + 1) = (int) &Buffer1; // first store the address in the  back buffer
     /* now, swap the front/back buffers, to set the front buffer location */
@@ -1738,9 +1740,22 @@ void main(void)
                 startingCol = moveCol;
                 startedMove = 1;
             }
+            else if(moveValid == 1 && startedMove == 1 && undoMove != 1) {
+                finalRow = moveRow;
+                finalCol = moveCol;
+                checkLegality(startingRow, startingCol, finalRow, finalCol, &moveLegal);
+                if(moveLegal) {
+                    movePiece(startingRow, startingCol, finalRow, finalCol);
+                    colour = colour == WHITE? BLACK: WHITE;//change colour
+                    startedMove = 0;
+                }
+                else {
+                    startedMove = 1;
+                }
+            }
             else if(undoMove == 1 && startedMove == 1) {
                 startedMove = 0;
-                undoMove = 0;
+                undoMove = 1;
             }
             mousePressed = 0;
             setupMouse();//enable interrupts from mouse
@@ -1750,7 +1765,6 @@ void main(void)
     	
 	}
 }
-
 
 /* The assembly language code below handles CPU exception processing. This
  * code should not be modified; instead, the C language code in the function
@@ -1968,10 +1982,40 @@ void checkMove(short int moveRow, short int moveCol, char colour, char* moveVali
         }
     }
     else {//already selected starting position
+        switch(colour) {
+            case BLACK: {
+                if(Board[moveRow][moveCol] > 'a' && Board[moveRow][moveCol] < 'z') {
+                    *(moveValid) = 1;
+                }
+                else {
+                    *(moveValid) = 0;
+                }
+                break;
+            }
 
+            case WHITE: {
+                if((Board[moveRow][moveCol] > 'A' && Board[moveRow][moveCol] < 'Z') || Board[moveRow][moveCol] == 'o') {
+                    *(moveValid) = 1;
+                }
+                else {
+                    *(moveValid) = 0;
+                }
+                break;
+            }
+        }
     }
     
     return;
+}
+
+void checkLegality(int startingRow, int startingCol, int finalRow, int finalCol, char* moveLegal) {
+    *moveLegal = 1;
+    return;
+}
+
+void movePiece(int startingRow, int startingCol, int finalRow, int finalCol) {
+    Board[finalRow][finalCol] = Board[startingRow][startingCol];
+    Board[startingRow][startingCol] = 'o';
 }
 
 void setupInterrupts() {
