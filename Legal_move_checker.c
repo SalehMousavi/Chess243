@@ -16,7 +16,7 @@ void if_checked(); // this function checks if a player is checked, if it is then
                     // if the kind moves out of the checked position and doesnt enter another checked postion
 void check_blocker(); // this checks if the piece that is being moved is a check blocker, meaning if moving the piece to another 
                     // square would check the player, such pieces are illegal to move
-void update_board(); // this function is called once the move has been cleared
+void update_board(int posx, int posy); // this function is called once the move has been cleared
 
 /***************************************************************************************************************************
  ******************************************************** GLOBALS **********************************************************
@@ -31,43 +31,45 @@ char Board[8][8] = {
 'p', 'p', 'p', 'p', 'p', 'p', 'p', 'p', 
 'r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'}; // capital letters resemble black pieces and lower case letter resemble white pieces
 
-char move [6] = {'P', 'a', '3', 'a', '4'}; // 3 characters (piece, x1, y1, x2, y2) + null terminator
+char move [6] = {'P', 'a', '3', 'a', '4'}; // 3 characters (piece, x1, y1, x2, y2) + null terminator 
 char turn = 'w';
-bool legal_move = false;
+bool legal_move = true;
 
 
 /***************************************************************************************************************************
  ******************************************************** MAIN *************************************************************
  ***************************************************************************************************************************/
 
-int Legal_move_checker(){
+int main(){
+    char termination [] = "00000";
+    print_board(); 
+    printf ("Enter move: ");
+    scanf("%5s", move);
 
-    while (move != '00000'){
-
-        printf ("Enter move: ");
-        scanf("%5s", move);
+    while (strcmp(move,termination) != 0){
         printf ("you entered: %s\n", move);
-
         check_turn();
         position_legal();
+        legal_move = true; // assume move is legal until proven it is not
 
         print_board(); 
-
+        printf ("Enter move: ");
+        scanf("%5s", move);
     }
 }
 
 void check_turn(){
-    if (move[0] != turn){
-        printf("Wrong turn");
-        legal_move = false;
+    if (turn == 'w' && (move[0] == 'p' || move[0] == 'r' || move[0] == 'n' || move[0] == 'b' || move[0] == 'k' || move[0]=='q')){ 
+        // it is white's turn and white is making a move
+        turn = 'b'; // switch turns 
+    }
+    else if (turn == 'b' && (move[0] == 'P' || move[0] == 'R' || move[0] == 'N' || move[0] == 'B' || move[0] == 'K' || move[0]=='Q')){
+        // black's turn and black is making a move
+       turn = 'w'; // switch turns 
     }
     else {
-        if (turn == 'w')
-            turn = 'b';
-        else 
-            turn = 'w';
-
-        legal_move = true;
+        printf("Wrong turn\n"); // not their turn
+        legal_move = false;
     }
 }
 
@@ -77,7 +79,9 @@ void position_legal(){
         if (move[0] == 'R' || move[0]=='r'){
             int deltax = abs(move[1] - move[3]); // |x1 - x2|
             int deltay = abs(move[2] - move[4]); // |y1 - y2|
-            if (deltax != 0|| deltay != 0){ // if the move is not horizontal or vertical
+            if (deltax == 0 || deltay == 0) // if the move is not horizontal or vertical
+                obstructed_path();
+            else {
                 legal_move = false;
                 return;
             }
@@ -119,7 +123,7 @@ void position_legal(){
             int deltay = move[4] - move[2]; // |y1 - y2|
 
             if (move[0] == 'p'){ // WHITE pawn
-                if (move[1] == 2 ){ // if it is a white pawn and it has not been moved
+                if (move[2] == '7' ){ // if it is a white pawn and it has not been moved
                     if (!(deltay == 1 || deltay == 2) && deltax != 0){ 
                         legal_move = false;
                         return;
@@ -128,7 +132,7 @@ void position_legal(){
                         obstructed_path();
                 }
                 else {
-                    if (!(deltay == 1) && deltax != 0){ // if not the the first move, then one 1 square moves allowed
+                    if (!(deltay == 1) && deltax != 0){ // if deltay is not 1 and deltax is not zero
                         legal_move = false;
                         return;
                     }
@@ -159,11 +163,14 @@ void position_legal(){
 }
 
 void obstructed_path(){
-    int posx = move[1] - 1; // positions that we are checking
-    int posy = move[3] - 1;
+    int posx = move[1] - 'a'; // positions that we are checking
+    int posy = move[2] - '1';
 
     int deltax = move[3] - move[1];
     int deltay = move[4] - move[2];
+
+    int destinationx = posx + deltax;
+    int destinationy = posy + deltay; 
 
     int distancex = abs(deltax); // the distance of the path in the x direction
     int distancey = abs(deltay); // the distance in the y direction
@@ -177,25 +184,36 @@ void obstructed_path(){
     if (deltay < 0)
         deltay = -1;
 
-   while (distancex != 0 && distancey != 0){
-        if (Board[posx + deltax][posy + deltay] != 'o'){ // a piece is in the way, move not legal
-            if (posx == move[3] && posy == move[4]) // if there is a piece at the destination, it is eliminated 
-                update_board();
-            posx += deltax;
-            posy + deltay;
+   while (distancex != posx && destinationy != posy){
+        if (Board[posy + deltay][posx + deltax] != 'o'){ // posy is the row, posx is the column of the array
+            // a piece is in the way, move not legal
+            // printf("%c", Board[posx + deltax][posy + deltay]);
+            if ((posx + deltay) == destinationx && (posy + deltax) == destinationy){
+                // if the next square is the destination, and a piece is there then it is eliminated 
+                update_board(destinationx, destinationy);
+                return;
+            }
             legal_move = false;
             return;
         }
+        else {
+            posx += deltax;
+            posy += deltay;
+        }
    }
+    update_board(destinationx, destinationy);
 }
 
-void update_board(){
-    Board[move[3] - 1][move[4] - 1] = move[0]; // move piece to the destination
-    Board[move[1] - 1][move[2] - 1] = 'o'; // set the old square to empty
+void update_board(int posx, int posy){
+    int x = move[1] - 'a'; // original positions to set to empty
+    int y = move[2] - '1'; 
+
+    Board[posy][posx] = move[0]; // move piece to the destination
+    Board[y][x] = 'o'; // set the orignal position to empty - 'o'
 }
 
 void print_board(){
-    printf("  a b c d e f g\n");
+    printf("  a b c d e f g h\n");
     for (int i = 0; i < 8; i++) {
         printf("%d ", i + 1);
         for (int j = 0; j < 8; j++) {
