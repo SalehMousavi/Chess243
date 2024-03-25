@@ -258,8 +258,8 @@ void drawPiece(int row, int col, char piece) {
         iconNum = WhiteKing; 
     break;
     }
-    x += WIDTH - gameIcons[iconNum].width;
-    y += HEIGHT - gameIcons[iconNum].height;
+    x += (WIDTH - gameIcons[iconNum].width)/2;
+    y += (HEIGHT - gameIcons[iconNum].height)/2;
     background = (row + col) & 0b1; //background 1 == white
     for (int i = 0; i < gameIcons[iconNum].width; i++) {
         for(int j = 0; j < gameIcons[iconNum].height; j++) {
