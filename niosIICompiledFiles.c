@@ -12,7 +12,7 @@ void getMove(short int* moveRow, short int* moveCol);
 void mouse_ISR(void);
 void setupTimer();
 void HEX_PS2(char b1, char b2, char b3);
-void TIMER_ISR();
+void timer_ISR();
 void displayTime();
 
 /* The assembly language code below handles CPU reset processing */
