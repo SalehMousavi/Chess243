@@ -1950,8 +1950,8 @@ void mouse_ISR() {
 			if((mousex != 319 || byte2 < 0 )&&(mousex != 0 || byte2 > 0)) {
 				mousex += byte2;
 			}
-			if((mousey != 239 || byte3 < 0 )&&(mousey != 0 || byte3 > 0)) {
-				mousey += byte3;
+			if((mousey != 239 || byte3 > 0 )&&(mousey != 0 || byte3 < 0)) {
+				mousey -= byte3;
 			}
 			mouseBuffer = 0;
 		}
@@ -1959,8 +1959,8 @@ void mouse_ISR() {
 			if((mousex != 319 || byte2 < 0 )&&(mousex != 0 || byte2 > 0)) {
 				mousex += byte2;
 			}
-			if((mousey != 239 || byte3 < 0 )&&(mousey != 0 || byte3 > 0)) {
-				mousey += byte3;
+			if((mousey != 239 || byte3 > 0 )&&(mousey != 0 || byte3 < 0)) {
+				mousey -= byte3;
 			}
 			mousePressed = 1;
 			*(PS2_ptr+1) = 0;

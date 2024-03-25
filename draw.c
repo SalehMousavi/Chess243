@@ -65,8 +65,8 @@ gamepiece gameIcons[12] = {
     },
     [BlackKnight] = {
         .type = 'N',
-        .width = 25,
-        .height = 27,
+        .width = 30,
+        .height = 30,
         .img = blackKnight,
         .imgW = blackKnightW
     },
