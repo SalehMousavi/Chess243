@@ -1,5 +1,10 @@
 #ifndef global
 #define global
+#define HEIGHT 30
+#define WIDTH 30
+#define BLACK 0
+#define WHITE 1
+#define YELLOW 0xFFA0
 volatile int pixel_buffer_start; // global variable
 short int Buffer1[240][512]; // 240 rows, 512 (320 + padding) columns
 short int Buffer2[240][512];
@@ -9,11 +14,9 @@ volatile unsigned int mousey = 119;
 volatile unsigned int mousePressed = 0;//for indicating if mouse was pressed
 volatile unsigned int mouseBuffer;
 volatile unsigned int undoMove = 0;
-#define HEIGHT 30
-#define WIDTH 30
-#define BLACK 0
-#define WHITE 1
-#define YELLOW 0xFFA0
+volatile unsigned int blackTime = (10*60)-1;
+volatile unsigned int whiteTime = (10*60)-1;
+volatile char colour = WHITE; 
 char Board[8][8] = {
 'R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R',
 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P',

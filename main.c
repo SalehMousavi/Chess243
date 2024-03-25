@@ -22,8 +22,8 @@ void main(void)
     *(pixel_ctrl_ptr + 1) = (int) &Buffer2;
     pixel_buffer_start = *(pixel_ctrl_ptr + 1); // we draw on the back buffer
     clear_screen(); // pixel_buffer_start points to the pixel buffer
-	char colour = WHITE; 
     setupMouse();
+    setupTimer();
     setupInterrupts();
     while (1)
     {   

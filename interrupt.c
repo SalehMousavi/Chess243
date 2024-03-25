@@ -95,13 +95,16 @@ void interrupt_handler(void) {
     if (ipending & 0x80) // PS2 mouse is interrupt level 7 
     {
         mouse_ISR();
-    } // else, ignore the interrupt
+    }
+    else if(ipending & 0x1) {// else, ignore the interrupt
+        timer_ISR();
+    } 
     return; 
 }
 
 
 void setupInterrupts() {
-    NIOS2_WRITE_IENABLE(0x80);
+    NIOS2_WRITE_IENABLE(0x81);
     NIOS2_WRITE_STATUS(1);
     return;
 }
