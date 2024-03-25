@@ -3,6 +3,12 @@
  ******************************************************************************/
 void main(void);
 void interrupt_handler(void); 
+void setupMouse();
+void setupInterrupts(); 
+void movePiece(int startingRow, int startingCol, int finalRow, int finalCol);
+void checkLegality(int startingRow, int startingCol, int finalRow, int finalCol, char* moveLegal);
+void checkMove(short int moveRow, short int moveCol, char colour, char* moveValid, char startedMove);
+void getMove(short int* moveRow, short int* moveCol);
 void mouse_ISR(void);
 /* The assembly language code below handles CPU reset processing */
 void the_reset(void) __attribute__((section(".reset")));
