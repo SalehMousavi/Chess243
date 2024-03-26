@@ -98,9 +98,7 @@ bool is_checked(int row, int col);  // this function checks if a player is check
                     // if the kind moves out of the checked position and doesnt
                     // enter another checked postion
 
-void update_board(
-    int posy,
-    int posx);  // this function is called once the move has been cleared
+void update_board(int startingRow, int startingCol, int finalRow, int finalCol); 
 void potential_moves(char piece, int row, int col);
 
 bool check_endgame();
@@ -130,7 +128,7 @@ char potential_moves_board[8][8] = {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
 
 char move[4] = {'P', 'a',
                 '3'};  // 5 characters (piece, x1, y1, x2, y2) + null terminator
-char turn = 'w';
+char turn;
 bool legal_move = true;
 
 int En_passant[3]; // marks the location of En Passant pawn
@@ -152,28 +150,14 @@ int bk_moves = 0;
  ******************************************************** MAIN ****************************************************************
  ***************************************************************************************************************************/
 
-void check_turn() {
-  if (turn == 'w' && (move[0] == 'p' || move[0] == 'r' || move[0] == 'n' ||
-                      move[0] == 'b' || move[0] == 'k' || move[0] == 'q')) {
-    // it is white's turn and white is making a move
-    turn = 'b';  // switch turns
-  } else if (turn == 'b' &&
-             (move[0] == 'P' || move[0] == 'R' || move[0] == 'N' ||
-              move[0] == 'B' || move[0] == 'K' || move[0] == 'Q')) {
-    // black's turn and black is making a move
-    turn = 'w';  // switch turns
-  } else {
-    printf("Wrong turn\n");  // not their turn
-    legal_move = false;
-  }
-}
+
 
 bool check_endgame(){
   int row;
   int col;
   for(int i =0; i<8; i++){
     for (int j=0; j<8; j++){
-      if (turn == 'b' && Board[i][j] == 'k'){
+      if (turn == BLACK && Board[i][j] == 'k'){
         row = i;
         col = j; // found the king
         potential_moves('k', row, col);
@@ -186,7 +170,7 @@ bool check_endgame(){
           return true;
         }
       }
-      else if (turn == 'w' && Board[i][j] == 'K'){
+      else if (turn == WHITE && Board[i][j] == 'K'){
         row = i;
         col = j;
         potential_moves('K', row, col);
@@ -875,9 +859,18 @@ bool is_checked(int row, int col){
 }
 
 void update_board(int startingRow, int startingCol, int finalRow, int finalCol) {
+<<<<<<< Updated upstream
   int row = move[2] - '1';
   int col = move[1] - 'a';
   if (potential_moves_board[row][col] != 'x') {  // move is not one of the potential moves not legal
+=======
+    int posy = startingRow;
+    int posx = startingCol;
+  int row = finalRow;
+  int col = finalCol;
+  if (potential_moves_board[row][col] !=
+      'x') {  // move is not one of the potential moves not legal
+>>>>>>> Stashed changes
     printf("move not legal\n");
     legal_move = false;
     return;
