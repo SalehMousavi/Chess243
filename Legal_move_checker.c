@@ -384,8 +384,8 @@ void potential_moves(char piece, int row, int col) {
 
     case 'N':
       for (int i=0; (i< 8 && !is_check_blocker(row, col)); i++){
-        int dx[7] = {-1, -2, -2, -1, 1, 2, 2, 1};
-        int dy[7] = {-2, -1, 1, 2, 2, 1, -1, -2};
+        int dx[8] = {-1, -2, -2, -1, 1, 2, 2, 1};
+        int dy[8] = {-2, -1, 1, 2, 2, 1, -1, -2};
 
         if (!((row + dy[i]) >= 0 && (row + dy[i]) < 8 && (col + dx[i]) >= 0 && (col + dx[i]) < 8))
           continue;
