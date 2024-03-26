@@ -1339,8 +1339,7 @@ const unsigned short blackRookW[675] = {
 0xFFFF, 0xFFFF, 0xFFFF, 0xF7BE, 0xEF5D, 0xEF5D, 0xEF5D, 0xEF5D, 0xEF5D, 0xEF5D, 0xEF5D, 0xEF5D, 0xEF5D, 0xEF5D, 0xEF5D, 0xEF5D,   // 0x0280 (640) pixels
 0xEF5D, 0xEF5D, 0xEF5D, 0xEF5D, 0xEF5D, 0xEF5D, 0xEF5D, 0xEF7D, 0xFFDF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF,   // 0x0290 (656) pixels
 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF,   // 0x02A0 (672) pixels
-0xFFFF, 0xFFFF, 0xFFFF
-};
+0xFFFF, 0xFFFF, 0xFFFF};
 
 #endif
 
@@ -2080,6 +2079,119 @@ void checkLegality(int finalRow, int finalCol, char* moveLegal) {
     return;
 }
 
+#include <math.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+/***************************************************************************************************************************
+ ******************************************************** FUNCTIONS
+ ***********************************************************
+ ***************************************************************************************************************************/
+void print_board();
+void print_potential_board();
+void check_turn();      // this checks if the turn inputed by the user is valid,
+                        // swaps turns if it is
+void position_legal();  // this checks if the piece is at the start end
+                        // locations are valid, if the destination is able to be
+                        // reached by the piece in one move, and if there are
+                        // peices around it.
+void obstructed_path();  // checks if the piece being moved has other pieces in
+                         // its path, if so move is not legal unless its a
+                         // knight
+bool is_checked(int row, int col);  // this function checks if a player is checked, if it is
+                    // then only the moves that block the check are allowed or
+                    // if the kind moves out of the checked position and doesnt
+                    // enter another checked postion
+
+void update_board(
+    int posy,
+    int posx);  // this function is called once the move has been cleared
+void potential_moves(char piece, int row, int col);
+
+bool check_endgame();
+bool is_check_blocker (int row, int col);
+
+/***************************************************************************************************************************
+ ******************************************************** GLOBALS*************************************************************
+ ***************************************************************************************************************************/
+char Board[8][8] = {'R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R', 
+                    'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 
+                    'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 
+                    'o', 'o', 'q', 'o', 'o', 'o', 'o', 'o', 
+                    'o', 'o', 'o', 'o', 'R', 'o', 'o', 'o', 
+                    'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 
+                    'p', 'p', 'p', 'p', 'o', 'p', 'p', 'p', 
+                    'r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'};
+// capital resembles black pieces and lower case resembles white pieces
+
+char potential_moves_board[8][8] = {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
+                                    'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
+                                    'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
+                                    'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
+                                    'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
+                                    'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
+                                    'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
+                                    'o'};  // this marks the potential moves
+
+char move[4] = {'P', 'a',
+                '3'};  // 5 characters (piece, x1, y1, x2, y2) + null terminator
+char turn = 'w';
+bool legal_move = true;
+
+int En_passant[3]; // marks the location of En Passant pawn
+bool En_passant_enable = false;
+
+bool rw_rook_moved = false;
+bool lw_rook_moved = false;
+bool rb_rook_moved = false;
+bool lb_rook_moved = false;
+bool white_king_moved = false;
+bool black_king_moved = false;
+
+bool castling_enable = false;
+
+int wk_moves = 0; // used to determien end game
+int bk_moves = 0;
+
+/***************************************************************************************************************************
+ ******************************************************** MAIN ****************************************************************
+ ***************************************************************************************************************************/
+bool check_endgame(){
+  int row;
+  int col;
+  for(int i =0; i<8; i++){
+    for (int j=0; j<8; j++){
+      if (colour == BLACK && Board[i][j] == 'k'){
+        row = i;
+        col = j; // found the king
+        potential_moves('k', row, col);
+        if (is_checked(row, col) && wk_moves == 0){ // white check mate
+          return true;
+        }
+        if (!is_checked(row, col) && wk_moves == 0){ // draw
+          return true;
+        }
+      }
+      else if (colour == WHITE && Board[i][j] == 'K'){
+        row = i;
+        col = j;
+        potential_moves('K', row, col);
+        if (is_checked(row, col) && bk_moves == 0){ // white check mate
+          return true;
+        }
+        if (!is_checked(row, col) && bk_moves == 0){ // draw
+          return true;
+        }
+      }
+    }
+  }
+}
+/*********************************************************************************************
+ **************************************** POTENTIAL MOVES *************************************
+ *********************************************************************************************/
+
 void potential_moves(char piece, int row, int col) {
   for (int i = 0; i < 8; i++) {  // erasing old potential moves
     for (int j = 0; j < 8; j++) {
@@ -2275,8 +2387,8 @@ void potential_moves(char piece, int row, int col) {
 
     case 'N':
       for (int i=0; (i< 8 && !is_check_blocker(row, col)); i++){
-        int dx[7] = {-1, -2, -2, -1, 1, 2, 2, 1};
-        int dy[7] = {-2, -1, 1, 2, 2, 1, -1, -2};
+        int dx[8] = {-1, -2, -2, -1, 1, 2, 2, 1};
+        int dy[8] = {-2, -1, 1, 2, 2, 1, -1, -2};
 
         if (!((row + dy[i]) >= 0 && (row + dy[i]) < 8 && (col + dx[i]) >= 0 && (col + dx[i]) < 8))
           continue;
@@ -2501,12 +2613,9 @@ void potential_moves(char piece, int row, int col) {
           break;    // Stop after capturing
         }
       }
-
     break;
-
     case 'Q':
      // HORIZONTAL AND VERTICAL 
-
       for (int i = 1; row + i < 8 && col + i < 8 && !is_check_blocker(row, col); i++) { // UP
         if (Board[row - i][col] == 'o') {
           potential_moves_board[row - i][col] = 'x';
@@ -2628,6 +2737,8 @@ void potential_moves(char piece, int row, int col) {
   }
 }
 
+// void potential_check_blocker ()
+
 bool is_check_blocker (int row, int col){
   if (Board[row][col] > 97){ // white piece
     for (int i = 0; i <8; i++){
@@ -2746,13 +2857,15 @@ bool is_checked(int row, int col){
   return false;
 }
 
-void update_board(int startingRow, int startingCol, int finalRow, int finalCol) {
-    int posy = startingRow;
-    int posx = startingCol;
-  int row = finalRow;
-  int col = finalCol;
+void update_board(int posy, int posx) {
+  int row = move[2] - '1';
+  int col = move[1] - 'a';
+  if (potential_moves_board[row][col] != 'x') {  // move is not one of the potential moves not legal
+    legal_move = false;
+    return;
+  }
    /********************** EN PASSANT *********************/
-if (En_passant_enable && row == En_passant[0] && col == En_passant[1])
+  else if (En_passant_enable && row == En_passant[0] && col == En_passant[1])
     Board[posy][posx -1] = 'o'; // elimintate piece
   
   else if (En_passant_enable && row == En_passant[2] && col == En_passant[3])
