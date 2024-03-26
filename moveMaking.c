@@ -859,22 +859,10 @@ bool is_checked(int row, int col){
 }
 
 void update_board(int startingRow, int startingCol, int finalRow, int finalCol) {
-<<<<<<< Updated upstream
-  int row = move[2] - '1';
-  int col = move[1] - 'a';
-  if (potential_moves_board[row][col] != 'x') {  // move is not one of the potential moves not legal
-=======
     int posy = startingRow;
     int posx = startingCol;
   int row = finalRow;
   int col = finalCol;
-  if (potential_moves_board[row][col] !=
-      'x') {  // move is not one of the potential moves not legal
->>>>>>> Stashed changes
-    printf("move not legal\n");
-    legal_move = false;
-    return;
-  }
    /********************** EN PASSANT *********************/
   else if (En_passant_enable && row == En_passant[0] && col == En_passant[1])
     Board[posy][posx -1] = 'o'; // elimintate piece
@@ -910,35 +898,4 @@ void update_board(int startingRow, int startingCol, int finalRow, int finalCol) 
   
   Board[row][col] = move[0];// move piece to the destination
   Board[posy][posx] = 'o';  // set the orignal position to empty - 'o'
-}
-
-void print_board() {
-  printf("  a b c d e f g h\n");
-  for (int i = 0; i < 8; i++) {
-    printf("%d ", i + 1);
-    for (int j = 0; j < 8; j++) {
-      printf("%c ", Board[i][j]);
-    }
-    printf("\n");
-  }
-}
-
-void print_potential_board() {
-  printf("  a b c d e f g h\n");
-  for (int i = 0; i < 8; i++){
-    printf("%d ", i + 1);
-    for (int j = 0; j < 8; j++) {
-      printf("%c ", potential_moves_board[i][j]);
-    }
-    printf("\n");
-  }
-}
-
-
-
-
-void movePiece(int startingRow, int startingCol, int finalRow, int finalCol) {
-    Board[finalRow][finalCol] = Board[startingRow][startingCol];
-    Board[startingRow][startingCol] = 'o';
-    return;
 }

@@ -1,6 +1,12 @@
 /*******************************************************************************
  * This file provides address values that exist in the DE1-SoC Computer
  ******************************************************************************/
+#include <math.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 void main(void);
 void interrupt_handler(void); 
 void setupMouse();
@@ -14,6 +20,25 @@ void setupTimer();
 void HEX_PS2(char b1, char b2, char b3);
 void timer_ISR();
 void displayTime();
+void print_board();
+void print_potential_board();
+void check_turn();      // this checks if the turn inputed by the user is valid,
+                        // swaps turns if it is
+void position_legal();  // this checks if the piece is at the start end
+                        // locations are valid, if the destination is able to be
+                        // reached by the piece in one move, and if there are
+                        // peices around it.
+void obstructed_path();  // checks if the piece being moved has other pieces in
+                         // its path, if so move is not legal unless its a
+                         // knight
+bool is_checked(int row, int col);  // this function checks if a player is checked, if it is
+                    // then only the moves that block the check are allowed or
+                    // if the kind moves out of the checked position and doesnt
+                    // enter another checked postion
+void update_board(int startingRow, int startingCol, int finalRow, int finalCol); 
+void potential_moves(char piece, int row, int col);
+bool check_endgame();
+bool is_check_blocker (int row, int col);
 
 /* The assembly language code below handles CPU reset processing */
 void the_reset(void) __attribute__((section(".reset")));
@@ -117,6 +142,7 @@ do { dest = __builtin_rdctl(5); } while (0)
 #define BLACK 0
 #define WHITE 1
 #define YELLOW 0xFFA0
+volatile int gameOver = 0;
 volatile int pixel_buffer_start; // global variable
 short int Buffer1[240][512]; // 240 rows, 512 (320 + padding) columns
 short int Buffer2[240][512];
@@ -128,8 +154,33 @@ volatile unsigned int mouseBuffer;
 volatile unsigned int undoMove = 0;
 volatile unsigned int blackTime = (10*60)-1;
 volatile unsigned int whiteTime = (10*60)-1;
-volatile unsigned int gameOver = 0;
 volatile char colour = WHITE; 
+
+volatile char potential_moves_board[8][8] = {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
+                                    'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
+                                    'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
+                                    'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
+                                    'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
+                                    'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
+                                    'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
+                                    'o'};  // this marks the potential moves
+
+char move[4] = {'P', 'a', '3'};  // 5 characters (piece, x1, y1, x2, y2) + null terminator
+int En_passant[3]; // marks the location of En Passant pawn
+bool En_passant_enable = false;
+
+bool rw_rook_moved = false;
+bool lw_rook_moved = false;
+bool rb_rook_moved = false;
+bool lb_rook_moved = false;
+bool white_king_moved = false;
+bool black_king_moved = false;
+
+bool castling_enable = false;
+
+int wk_moves = 0; // used to determien end game
+int bk_moves = 0;
+
 char Board[8][8] = {
 'R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R',
 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P',
@@ -139,129 +190,6 @@ char Board[8][8] = {
 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
 'p', 'p', 'p', 'p', 'p', 'p', 'p', 'p', 
 'r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'}; //8x8 gameboard global variable
-
-#endif
-
-#ifndef numbers
-#define numbers
-
-const unsigned short Num2[180] = {
-0xEF7D, 0xE71C, 0xE71C, 0xE73C, 0xEF5D, 0xEF5D, 0xE73C, 0xE73C, 0x0000, 0x0000, 0xEF7D, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF,   // 0x0010 (16) pixels
-0xFFFF, 0xFFFF, 0xEF5D, 0x0000, 0xEF5D, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xF79E, 0xE71C, 0xFFFF,   // 0x0020 (32) pixels
-0xEF5D, 0xDEFB, 0xE71C, 0xF7BE, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xBDF7, 0xD69A, 0x94B2, 0x8430, 0x7BF0, 0xBDF7, 0xFFFF, 0xFFFF,   // 0x0030 (48) pixels
-0xFFFF, 0xFFFF, 0x73AE, 0x6B6D, 0x0000, 0x0000, 0x0000, 0xA514, 0xFFDF, 0xFFFF, 0xFFFF, 0xF7BE, 0x0000, 0x0000, 0x0000, 0xFFFF,   // 0x0040 (64) pixels
-0x0000, 0xFFDF, 0xFFFF, 0xFFFF, 0xFFFF, 0xE71C, 0x0000, 0xFFFF, 0xB596, 0x0000, 0x0000, 0xFFDF, 0xFFFF, 0xFFFF, 0xFFFF, 0xC618,   // 0x0050 (80) pixels
-0x0000, 0x8410, 0xFFFF, 0x0000, 0xF79E, 0xFFFF, 0xFFFF, 0xFFFF, 0xE71C, 0x7BCF, 0x0000, 0xFFFF, 0x0000, 0xE73C, 0xF7BE, 0xFFFF,   // 0x0060 (96) pixels
-0xFFFF, 0xFFFF, 0xB596, 0x0000, 0xCE79, 0x0000, 0xDEFB, 0xF79E, 0xFFFF, 0xFFFF, 0xFFFF, 0xC638, 0x4208, 0x0000, 0x0000, 0xBDF7,   // 0x0070 (112) pixels
-0xEF7D, 0xFFFF, 0xFFFF, 0xFFFF, 0xEF7D, 0x8430, 0x0000, 0xFFFF, 0x0000, 0xEF7D, 0xFFFF, 0xFFFF, 0xFFFF, 0xE73C, 0x8410, 0x0000,   // 0x0080 (128) pixels
-0x0000, 0x0000, 0xEF7D, 0xFFFF, 0xFFFF, 0xFFFF, 0xF7BE, 0xBDD7, 0xBDF7, 0xEF7D, 0xDEFB, 0xEF5D, 0xFFDF, 0xFFFF, 0xFFFF, 0xFFFF,   // 0x0090 (144) pixels
-0xF7BE, 0xF79E, 0xF7BE, 0xF7BE, 0xFFFF, 0xF79E, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF,   // 0x00A0 (160) pixels
-0xE71C, 0xFFDF, 0xEF7D, 0xEF7D, 0xEF7D, 0xEF5D, 0xEF7D, 0xEF5D, 0xF7BE, 0xE71C, 0x9CD3, 0xAD55, 0xA514, 0xA514, 0xA514, 0xA514,   // 0x00B0 (176) pixels
-0xA514, 0xA514, 0xAD55, 0x94B2
-};
-
-const unsigned short Num3[180] = {
-0xEF7D, 0xE73C, 0xE73C, 0xEF5D, 0xEF5D, 0xEF5D, 0xEF5D, 0xE73C, 0xEF7D, 0x0000, 0xEF7D, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF,   // 0x0010 (16) pixels
-0xFFFF, 0xFFFF, 0xEF7D, 0xDEFB, 0xF79E, 0xFFFF, 0xFFFF, 0xFFDF, 0xFFDF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xF7BE, 0xD69A, 0xFFDF,   // 0x0020 (32) pixels
-0xCE79, 0xBDF7, 0xC618, 0xEF7D, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0x8C71, 0x9492, 0x7BF0, 0x73AE, 0x52CB, 0x9CF3, 0xF7BE, 0xFFFF,   // 0x0030 (48) pixels
-0xFFFF, 0xFFFF, 0x4208, 0x0000, 0x0000, 0x0000, 0x0000, 0xAD75, 0xF79E, 0xFFFF, 0xFFFF, 0xF79E, 0x0000, 0x0000, 0xE73C, 0xDEFB,   // 0x0040 (64) pixels
-0xDF1C, 0xF79E, 0xFFFF, 0xFFFF, 0xFFFF, 0xBDF7, 0x0000, 0x0000, 0xEF9E, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xEF7D, 0xB596, 0x6B4D,   // 0x0050 (80) pixels
-0x0000, 0x0000, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xF79E, 0xC618, 0x0000, 0x0000, 0x0000, 0xD69A, 0xFFDF, 0xEF3D, 0xFFDF,   // 0x0060 (96) pixels
-0xFFFF, 0xFFFF, 0xFFFF, 0xEF9E, 0xFFFF, 0x0000, 0x8C71, 0x94B2, 0x9CD3, 0xD69A, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFDF, 0x0000, 0xAD55,   // 0x0070 (112) pixels
-0x6B4D, 0x6B6D, 0x0000, 0x8410, 0xEF5D, 0xFFFF, 0xFFFF, 0xFFFF, 0xE71C, 0x0000, 0x0000, 0x0000, 0x0000, 0xD6BA, 0xF7BE, 0xFFFF,   // 0x0080 (128) pixels
-0xFFFF, 0xFFFF, 0xEF7D, 0xE73C, 0xDEFB, 0xDEFB, 0xDEDB, 0xEF7D, 0xFFFF, 0xFFFF, 0xFFFF, 0xEF7D, 0xFFDF, 0xFFFF, 0xFFDF, 0xF7BE,   // 0x0090 (144) pixels
-0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xCE59, 0xFFDF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFDF, 0xDEDB, 0x8430,   // 0x00A0 (160) pixels
-0xC618, 0xEF5D, 0xE73C, 0xEF7D, 0xEF7D, 0xEF5D, 0xDEFB, 0xBDD7, 0x8410, 0x0000, 0x73CF, 0x8C71, 0x9CD3, 0xA534, 0xA514, 0x94B3,   // 0x00B0 (176) pixels
-0x8430, 0x5AEB, 0x0000, 0x0000
-};
-
-const unsigned short Num4[160] = {
-0x0000, 0x0000, 0xDEFB, 0x0000, 0xF79E, 0xEF7D, 0xEF7D, 0xF79E, 0xF7BE, 0x0000, 0x0000, 0xFFFF, 0x0000, 0xCE79, 0xFFDF, 0xFFFF,   // 0x0010 (16) pixels
-0xFFFF, 0xFFFF, 0xFFDF, 0x0000, 0x0000, 0xFFFF, 0x0000, 0xF7BE, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xF7BE, 0x0000, 0xFFFF, 0x0000,   // 0x0020 (32) pixels
-0xEF5D, 0xFFDF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xF7BE, 0x0000, 0xFFFF, 0x0000, 0xF79E, 0xFFFF, 0xF79E, 0xE71C, 0xFFFF, 0xFFFF,   // 0x0030 (48) pixels
-0xF7BE, 0x0000, 0x0000, 0xF79E, 0xFFDF, 0xFFFF, 0xCE79, 0xD6BB, 0xFFFF, 0xFFFF, 0xF7BE, 0x0000, 0x0000, 0xF79E, 0xFFFF, 0xFFFF,   // 0x0040 (64) pixels
-0x8431, 0xF79E, 0xFFFF, 0xFFFF, 0xF7BE, 0x0000, 0xEF7D, 0xFFFF, 0xFFFF, 0xD69A, 0x0000, 0xFFDF, 0xFFFF, 0xFFFF, 0xF7BE, 0x0000,   // 0x0050 (80) pixels
-0xF7BE, 0xFFFF, 0xF7BE, 0x9CD3, 0x0000, 0xF79E, 0xFFFF, 0xFFFF, 0xF7BE, 0x0000, 0xFFDF, 0xFFFF, 0xE73C, 0xD69A, 0xE71C, 0xF79E,   // 0x0060 (96) pixels
-0xFFFF, 0xFFFF, 0xEF7D, 0xE73C, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xF7BE, 0xFFFF,   // 0x0070 (112) pixels
-0xFFDF, 0xFFDF, 0xFFDF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFDF, 0xB596, 0xBDD7, 0xB5B6, 0xBDD7, 0xB596, 0xEF5D, 0xFFFF, 0xFFFF,   // 0x0080 (128) pixels
-0xDEFB, 0xAD55, 0x52CA, 0x5ACB, 0x52AA, 0x6B6D, 0x0000, 0xEF7D, 0xFFFF, 0xFFFF, 0xDEFB, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,   // 0x0090 (144) pixels
-0x0000, 0xEF5D, 0xFFFF, 0xFFFF, 0xEF7D, 0x0000, 0x8410, 0xBDF7, 0xAD55, 0xD6BA, 0x0000, 0x9CF3, 0xAD75, 0xAD55, 0x94B2, 0x0000,   // 0x00A0 (160) pixels
-};
-
-const unsigned short Num5[190] = {
-0xEF7D, 0xEF5D, 0xE75D, 0xE73C, 0xE73C, 0xE73C, 0xE73C, 0xE73C, 0xEF5D, 0xF7BE, 0xFFDF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF,   // 0x0010 (16) pixels
-0xFFFF, 0xFFFF, 0xFFFF, 0xF7BE, 0xF7BE, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xEF5D, 0xF7BE, 0xFFFF,   // 0x0020 (32) pixels
-0xFFFF, 0xEF7D, 0xCE79, 0xD69A, 0xCE7A, 0xD69A, 0xD6BA, 0xAD75, 0xF7BE, 0xFFFF, 0xFFFF, 0xDEDB, 0x4A8A, 0x8410, 0x7BEF, 0x8410,   // 0x0030 (48) pixels
-0x7BEF, 0x6B4D, 0xF7BE, 0xFFFF, 0xFFFF, 0xF79E, 0x0000, 0xFFFF, 0x0000, 0x0000, 0x0000, 0xFFFF, 0xF7BE, 0xFFFF, 0xFFFF, 0xF79E,   // 0x0040 (64) pixels
-0xE73C, 0xEF5D, 0xE73C, 0xE71C, 0xFFFF, 0x0000, 0xF7BE, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xEF5D, 0xFFFF,   // 0x0050 (80) pixels
-0xF7BE, 0xFFFF, 0xF79E, 0xF7BE, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xF79E, 0xBDF7, 0xCE59, 0xB596, 0xB5B6, 0xD69A, 0xF7BE,   // 0x0060 (96) pixels
-0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0x7BCF, 0x738E, 0x5B0B, 0x630C, 0x7BCF, 0xC618, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0x0000, 0x0000,   // 0x0070 (112) pixels
-0x0000, 0x0000, 0x0000, 0x8C71, 0xFFDF, 0xFFFF, 0xFFFF, 0xFFFF, 0x0000, 0x0000, 0xAD55, 0xBDF7, 0x0000, 0xCE79, 0xFFDF, 0xFFFF,   // 0x0080 (128) pixels
-0xFFFF, 0xFFDF, 0xEF5D, 0xEF5D, 0x0000, 0x0000, 0xFFFF, 0xEF7D, 0xFFFF, 0xFFFF, 0xFFFF, 0xEF7D, 0xFFFF, 0xE73C, 0xE71C, 0xE71C,   // 0x0090 (144) pixels
-0xE73C, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xD6BA, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xF7BE, 0x9CD3,   // 0x00A0 (160) pixels
-0xFFDF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xEF7D, 0xA535, 0x10E2, 0xC618, 0xDEDB, 0xE71C, 0xE73C, 0xE73C, 0xE6FC,   // 0x00B0 (176) pixels
-0xCE79, 0x9CD3, 0x5B0C, 0x0000, 0x73AE, 0x8C51, 0x94B2, 0x9CD3, 0x94B2, 0x8C71, 0x7BCF, 0x0081, 0x0000, 0xAD55
-};
-
-const unsigned short Num6[170] = {
-0xFFFF, 0x0000, 0x0000, 0xE71C, 0xE71C, 0xE73C, 0xE73C, 0xE71C, 0xE71C, 0xFFFF, 0x0000, 0x0000, 0xEF5D, 0xFFFF, 0xFFFF, 0xFFFF,   // 0x0010 (16) pixels
-0xFFFF, 0xFFFF, 0xFFFF, 0xF79E, 0x0000, 0xEF7D, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xF7BE, 0xFFFF, 0xFFFF, 0xE73C, 0xF7BE, 0xFFDF,   // 0x0020 (32) pixels
-0xFFFF, 0xFFFF, 0xF7BE, 0xC638, 0xAD75, 0xC618, 0xDEFB, 0xBDD7, 0xFFDF, 0xFFFF, 0xFFFF, 0xFFFF, 0xA534, 0x0000, 0x0000, 0x52AA,   // 0x0030 (48) pixels
-0x8410, 0x6B6E, 0xFFDF, 0xFFFF, 0xFFFF, 0xDEFB, 0x0000, 0xFFFF, 0xF79E, 0x0000, 0x0000, 0x9492, 0xFFDF, 0xFFFF, 0xFFFF, 0xE71C,   // 0x0040 (64) pixels
-0xE71C, 0xFFDF, 0xF79E, 0xEF5D, 0xEF5D, 0x0000, 0xFFDF, 0xFFFF, 0xFFFF, 0xFFDF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xF7BE, 0xEF7D,   // 0x0050 (80) pixels
-0xFFDF, 0xFFFF, 0xFFFF, 0xFFFF, 0xEF7D, 0xEF5D, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFDF, 0xFFDF, 0xFFFF, 0xFFFF, 0xF79E, 0x9CD3, 0x9492,   // 0x0060 (96) pixels
-0xEF7D, 0xFFFF, 0xFFFF, 0xFFFF, 0xF7BE, 0xFFFF, 0xFFFF, 0xDEFB, 0x0000, 0x0000, 0xDEDB, 0xFFFF, 0xFFFF, 0xFFFF, 0xEF5D, 0xFFFF,   // 0x0070 (112) pixels
-0xFFFF, 0xF79E, 0x0000, 0x0000, 0xF79E, 0xFFFF, 0xFFFF, 0xFFFF, 0xDEDB, 0xFFFF, 0xFFFF, 0xFFDF, 0x0000, 0x0000, 0xFFDF, 0xFFFF,   // 0x0080 (128) pixels
-0xFFFF, 0xF7BE, 0xB576, 0xFFFF, 0xFFFF, 0xFFFF, 0xEF5D, 0xE73C, 0xFFFF, 0xFFFF, 0xFFFF, 0xD6BA, 0x528A, 0xD69A, 0xFFFF, 0xFFFF,   // 0x0090 (144) pixels
-0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFDF, 0x94B3, 0x0000, 0x8430, 0xD69A, 0xEF5D, 0xF79E, 0xF7BE, 0xEF7D, 0xE73C, 0x9CF3, 0x0000,   // 0x00A0 (160) pixels
-0x0000, 0x0000, 0x738E, 0x94B2, 0xA535, 0xAD55, 0x9CF4, 0x8410, 0x0000, 0x0000
-};
-
-const unsigned short Num7[170] = {
-0xEF5D, 0xE73C, 0xE73C, 0xE73C, 0xE73C, 0xE73C, 0xEF5D, 0xEF5D, 0xE73C, 0xEF7D, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF,   // 0x0010 (16) pixels
-0xFFFF, 0xFFFF, 0xFFFF, 0xFFDF, 0xE73C, 0xEF7D, 0xEF5D, 0xEF5D, 0xEF7D, 0xEF5D, 0xEF5D, 0xFFFF, 0xFFFF, 0xF7BE, 0x9492, 0x94B3,   // 0x0020 (32) pixels
-0x94B2, 0x94B2, 0x9CD3, 0x8430, 0xDEDB, 0xFFFF, 0xFFFF, 0xEF5D, 0x0000, 0x0000, 0x0000, 0x0040, 0x0000, 0x8430, 0xFFDF, 0xFFFF,   // 0x0030 (48) pixels
-0xFFFF, 0xCE59, 0x0000, 0x0000, 0x0000, 0xFFFF, 0x0000, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFDF, 0x94B2, 0x8410, 0x4208, 0xBDF7, 0x0000,   // 0x0040 (64) pixels
-0x0000, 0xFFDF, 0xFFFF, 0xFFFF, 0xDEDB, 0x0000, 0x0000, 0x0000, 0xFFFF, 0x0000, 0xFFDF, 0xFFFF, 0xFFFF, 0xFFFF, 0xB596, 0x0000,   // 0x0050 (80) pixels
-0x0000, 0xFFFF, 0xFFFF, 0x0000, 0xFFDF, 0xFFFF, 0xFFFF, 0xE73C, 0x2124, 0x0000, 0x0000, 0xFFFF, 0x0000, 0xFFDF, 0xFFFF, 0xFFFF,   // 0x0060 (96) pixels
-0xFFFF, 0xC638, 0x0000, 0xFFFF, 0xFFFF, 0xFFFF, 0x0000, 0xFFDF, 0xFFFF, 0xFFFF, 0xFFFF, 0x8C71, 0x0000, 0x9CD3, 0xFFFF, 0x0000,   // 0x0070 (112) pixels
-0xF79E, 0xFFFF, 0xFFFF, 0xFFFF, 0xD6BA, 0x0000, 0x0000, 0x0000, 0xFFFF, 0x0000, 0xFFDF, 0xFFFF, 0xFFFF, 0xFFFF, 0xB596, 0x0000,   // 0x0080 (128) pixels
-0xFFFF, 0x0000, 0x0000, 0x0000, 0xFFDF, 0xFFFF, 0xFFFF, 0xE73C, 0x528A, 0x0000, 0x8410, 0x0000, 0x0000, 0xFFFF, 0xFFFF, 0xFFFF,   // 0x0090 (144) pixels
-0xFFFF, 0xC638, 0x0000, 0x0000, 0xFFFF, 0x0000, 0x0000, 0xEF7D, 0xFFFF, 0xFFDF, 0xF79E, 0x9CD3, 0x0000, 0xFFFF, 0x0000, 0x0000,   // 0x00A0 (160) pixels
-0x0000, 0xA534, 0xB596, 0xAD75, 0x9CF3, 0x2124, 0x0000, 0xAD55, 0x0000, 0x0000
-};
-
-const unsigned short Num8[170] ={
-0x0000, 0x0000, 0xE73C, 0xE73C, 0xE75D, 0xE73C, 0xE73C, 0xE73C, 0x0000, 0x0000, 0x0000, 0xEF5D, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF,   // 0x0010 (16) pixels
-0xFFFF, 0xFFFF, 0xEF7D, 0x0000, 0xF7BE, 0xFFFF, 0xFFFF, 0xFFFF, 0xF79E, 0xF7BE, 0xFFFF, 0xFFFF, 0xFFFF, 0xF79E, 0xFFDF, 0xFFFF,   // 0x0020 (32) pixels
-0xFFFF, 0xF79E, 0xA514, 0xAD55, 0xFFDF, 0xFFFF, 0xFFFF, 0xFFDF, 0xF7BE, 0xFFFF, 0xFFFF, 0xDEFB, 0x0000, 0x0000, 0xEF5D, 0xFFFF,   // 0x0030 (48) pixels
-0xFFFF, 0xF7BE, 0xDEFB, 0xFFFF, 0xFFFF, 0xFFDF, 0x0000, 0xFFFF, 0xFFDF, 0xFFFF, 0xFFFF, 0xCE59, 0xAD55, 0xFFFF, 0xFFFF, 0xFFFF,   // 0x0040 (64) pixels
-0xEF5D, 0xEF5D, 0xFFFF, 0xFFFF, 0xE71C, 0x738E, 0x0000, 0xB5B6, 0xFFDF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xEF7D, 0x9492, 0x0000,   // 0x0050 (80) pixels
-0xC638, 0xDEDB, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xE73C, 0xFFFF, 0xF79E, 0xFFFF, 0xFFFF, 0xFFFF, 0xCE59, 0xDEDB,   // 0x0060 (96) pixels
-0xFFFF, 0xFFFF, 0xFFFF, 0xF79E, 0xFFFF, 0xFFFF, 0xFFFF, 0xD6BA, 0x5AEB, 0x8410, 0xEF5D, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF,   // 0x0070 (112) pixels
-0xFFFF, 0xD69A, 0x0000, 0x0000, 0xCE79, 0xFFFF, 0xFFFF, 0xFFDF, 0xFFDF, 0xFFFF, 0xFFFF, 0xF7BE, 0x0000, 0x0000, 0xF7BE, 0xFFFF,   // 0x0080 (128) pixels
-0xFFFF, 0xF7BE, 0xDEFB, 0xFFFF, 0xFFFF, 0xFFFF, 0xE73C, 0xE73C, 0xFFFF, 0xFFFF, 0xFFFF, 0xE71C, 0xA534, 0xFFFF, 0xFFFF, 0xFFFF,   // 0x0090 (144) pixels
-0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFDF, 0xA514, 0x3A07, 0xA534, 0xE73C, 0xEF7D, 0xF7BE, 0xF7BE, 0xEF7D, 0xE73C, 0xA514, 0x0000,   // 0x00A0 (160) pixels
-0x0000, 0x2986, 0x8430, 0xA514, 0xAD75, 0xAD55, 0x9CF3, 0x8410, 0x0020, 0x0000
-};
-
-const unsigned short Num1[230] = {
-0x0000, 0x0000, 0xFFFF, 0x0000, 0x0000, 0xEF5D, 0xE73C, 0xE73C, 0xEF5D, 0xEF7D, 0x0000, 0xD6BA, 0x0000, 0x0000, 0xE73C, 0xFFFF,   // 0x0010 (16) pixels
-0xFFFF, 0xFFFF, 0xFFFF, 0xFFDF, 0xCE79, 0x0000, 0xFFFF, 0xE73C, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFDF, 0x0000, 0xEF7D,   // 0x0020 (32) pixels
-0xE73C, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFDF, 0xEF7D, 0xF79E, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF,   // 0x0030 (48) pixels
-0xFFFF, 0xFFDF, 0xDEFB, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFDF, 0xA514, 0xF7BE, 0xFFFF, 0xFFFF,   // 0x0040 (64) pixels
-0xDEFB, 0xF7BE, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFDF, 0x5B0C, 0xC5F8, 0xFFFF, 0xE6FC, 0x9CD3, 0xF79E, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFDF,   // 0x0050 (80) pixels
-0x0000, 0x8C51, 0xCE79, 0x9CF3, 0x2965, 0xFFDF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFDF, 0x0000, 0x39E7, 0x8430, 0x6B4D, 0x0000, 0xF7BE,   // 0x0060 (96) pixels
-0xFFFF, 0xFFFF, 0xFFFF, 0xFFDF, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0xFFDF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFDF, 0x0000, 0x0000,   // 0x0070 (112) pixels
-0x0000, 0x0000, 0x0000, 0xFFDF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFDF, 0x0000, 0x0000, 0x8410, 0x0000, 0x0000, 0xFFDF, 0xFFFF, 0xFFFF,   // 0x0080 (128) pixels
-0xFFFF, 0xFFDF, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0xFFDF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFDF, 0x0000, 0x0000, 0x0000, 0x0000,   // 0x0090 (144) pixels
-0x0000, 0xFFDF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFDF, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0xFFDF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFDF,   // 0x00A0 (160) pixels
-0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0xFFDF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFDF, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0xFFDF,   // 0x00B0 (176) pixels
-0xFFFF, 0xFFFF, 0xFFFF, 0xFFDF, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0xF7BE, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFDF, 0x0000, 0x0000,   // 0x00C0 (192) pixels
-0x0000, 0x0000, 0x0000, 0xFFDF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFDF, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0xF7BE, 0xFFFF, 0xFFFF,   // 0x00D0 (208) pixels
-0xFFFF, 0xFFDF, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0xCE39, 0xDEDB, 0xD69A, 0xDEFB, 0xCE39, 0x0000, 0x0000, 0x0000, 0x0000,   // 0x00E0 (224) pixels
-0x0000, 0x8C71, 0x94B2, 0x9492, 0x94B2, 0x8C51
-};
 
 #endif
 
@@ -1450,50 +1378,6 @@ typedef struct piece {//struct to hold the image of each icon, one with white ba
 
 #endif
 
-number numberIcons[8] = {
-    {
-        .width = 10,
-        .height = 23,
-        .img = Num1
-    },
-    {
-        .width = 10,
-        .height = 18,
-        .img = Num2
-    },
-    {
-        .width = 10,
-        .height = 18,
-        .img = Num3
-    },
-    {
-        .width = 10,
-        .height = 16,
-        .img = Num4
-    },
-    {
-        .width = 10,
-        .height = 19,
-        .img = Num5
-    },
-    {
-        .width = 10,
-        .height = 17,
-        .img = Num6
-    },
-    {
-        .width = 10,
-        .height = 17,
-        .img = Num7
-    },
-    {
-        .width = 10,
-        .height = 17,
-        .img = Num8
-    }
-
-};
-
 gamepiece gameIcons[12] = {
     [BlackPawn] = {
         .type = 'P',
@@ -2121,4 +2005,785 @@ void displayTime() {
 	byte3 = 0;
     HEX_PS2(byte1, byte2, byte3);
     return;
+}
+
+
+void getMove(short int* moveRow, short int* moveCol) {
+   mousex = (int) (mousex & 0x1FF);
+   mousey = (int) (mousey & 0xFF);
+    if (mousex < 39 || mousex > 279) {
+        return;
+    }
+   *moveCol = (short int)((mousex - 39) / WIDTH);
+   *moveRow = (short int)(mousey / HEIGHT);
+   return;
+}
+
+void checkMove(short int moveRow, short int moveCol, char colour, char* moveValid, char startedMove) {
+    if(startedMove == 0) {//selecting a starting position for move
+        switch(colour) {
+            case BLACK: {
+                if(Board[moveRow][moveCol] > 'A' && Board[moveRow][moveCol] < 'Z' && Board[moveRow][moveCol] != 'o') {
+                    *(moveValid) = 1;
+                }
+                else {
+                    *(moveValid) = 0;
+                }
+                break;
+            }
+
+            case WHITE: {
+                if(Board[moveRow][moveCol] > 'a' && Board[moveRow][moveCol] < 'z' && Board[moveRow][moveCol] != 'o') {
+                    *(moveValid) = 1;
+                }
+                else {
+                    *(moveValid) = 0;
+                }
+                break;
+            }
+        }
+    }
+    else {//already selected starting position
+        switch(colour) {
+            case BLACK: {
+                if(Board[moveRow][moveCol] > 'a' && Board[moveRow][moveCol] < 'z') {
+                    *(moveValid) = 1;
+                }
+                else {
+                    *(moveValid) = 0;
+                }
+                break;
+            }
+
+            case WHITE: {
+                if((Board[moveRow][moveCol] > 'A' && Board[moveRow][moveCol] < 'Z') || Board[moveRow][moveCol] == 'o') {
+                    *(moveValid) = 1;
+                }
+                else {
+                    *(moveValid) = 0;
+                }
+                break;
+            }
+        }
+    }
+    
+    return;
+}
+
+void checkLegality(int finalRow, int finalCol, char* moveLegal) {
+   if(potential_moves_board[finalRow][finalCol] == 'x') {
+    *moveLegal = 1;
+   }
+   else {
+    *moveLegal = 0;
+   }
+    return;
+}
+
+void potential_moves(char piece, int row, int col) {
+  for (int i = 0; i < 8; i++) {  // erasing old potential moves
+    for (int j = 0; j < 8; j++) {
+      if (potential_moves_board[i][j] == 'x') 
+        potential_moves_board[i][j] = 'o';
+    }
+  }
+  if (Board[row][col] !=
+      piece)  // if the piece is not there, no potential moves
+    return;
+
+  switch (piece) {
+    /******************************************************** PAWNS ***********************************************************/
+    case 'p':
+      if (Board[row - 1][col] == 'o' && !is_check_blocker(row, col)) {  // if there is no piece in front
+        potential_moves_board[row - 1][col] =
+            'x';  // mark the potential moves for that piece with x
+        if (row == 6 && Board[row-2][col] == 'o')
+          potential_moves_board[row - 2][col] =
+              'x';  // if its the first move, then two moves is available
+      }
+      if (Board[row - 1][col - 1] < 90 && Board[row - 1][col - 1] != 'K')  
+        potential_moves_board[row - 1][col - 1] =
+            'x';  // if there are pieces on the diagonals of the pawn they can
+                  // be eliminated
+      if (Board[row - 1][col + 1] < 90 && Board[row - 1][col + 1] != 'K')
+        potential_moves_board[row - 1][col + 1] = 'x';
+
+      // En Passant
+      if (Board[row][col-1] < 90 && Board[row][col - 1] == 'P'){
+        potential_moves_board[row - 1][col - 1] = 'x';
+
+        En_passant_enable = true;
+        En_passant[0] = row;
+        En_passant[1] = col; // store location of En Passant pawn
+      }
+      if (Board[row][col+1] < 90 && Board[row][col + 1] == 'P'){
+        potential_moves_board[row - 1][col + 1] = 'x';
+        
+        En_passant_enable = true;
+        En_passant[2] = row;
+        En_passant[3] = col; // store location of En Passant pawn
+      }
+
+      break;
+
+    case 'P':
+      if (Board[row + 1][col] == 'o' && !is_check_blocker(row, col)) {  // if there is no piece in front
+        potential_moves_board[row + 1][col] = 'x';
+        if (row == 1 && Board[row+2][col] == 'o')
+          potential_moves_board[row + 2][col] =
+              'x';  // if its the first move, then two moves is available
+      }
+      if (Board[row + 1][col + 1] > 122)  
+        potential_moves_board[row + 1][col + 1] =
+            'x';  // if there are pieces on the diagonals of the pawn they can
+                  // be eliminated
+      if (Board[row + 1][col - 1] > 122)
+        potential_moves_board[row + 1][col - 1] = 'x';
+      break;
+
+    /******************************************************** ROOKS ***********************************************************/
+    case 'r':
+    // vertically up
+      for (int i = row + 1; (i < 8 && !is_check_blocker(row, col)); i++) {
+        if (Board[i][col] == 'o')
+          potential_moves_board[i][col] = 'x';
+        else if (Board[i][col] > 97)
+          break;  // Stop at own piece
+        else {
+          potential_moves_board[i][col] = 'x';  // Capture opponent's piece
+          break;                                // Stop after capturing
+        }
+      }
+
+      // Check vertically down
+      for (int i = row - 1; (i >= 0 && !is_check_blocker(row, col)); i--) {
+        if (Board[i][col] == 'o')
+          potential_moves_board[i][col] = 'x';
+        else if (Board[i][col] > 97)
+          break;  // Stop at own piece
+        else {
+          potential_moves_board[i][col] = 'x';  // Capture opponent's piece
+          break;                                // Stop after capturing
+        }
+      }
+
+      // Check horizontally right
+      for (int i = col + 1; (i < 8 && !is_check_blocker(row, col)); i++) {
+        if (Board[row][i] == 'o') {
+          potential_moves_board[row][i] = 'x';
+        } else if (Board[row][i] > 97) {
+          if (col == 0 && Board[row][i] == 'k' && !lw_rook_moved && !white_king_moved){
+            potential_moves_board[row][i-1] = 'x';
+            castling_enable = true;
+          }
+          break;  // Stop at own piece
+        } else {
+          potential_moves_board[row][i] = 'x';  // Capture opponent's piece
+          break;                                // Stop after capturing
+        }
+      }
+
+      // Check horizontally left
+      for (int i = col - 1; (i >= 0 && !is_check_blocker(row, col)); i--) {
+        if (Board[row][i] == 'o') {
+          potential_moves_board[row][i] = 'x';
+        } else if (Board[row][i] > 97) {
+          if (col == 7 && Board[row][i] == 'k' && !rw_rook_moved && !white_king_moved){
+            potential_moves_board[row][i+1] = 'x';
+            castling_enable = true;
+          }
+          break;  // Stop at own piece
+        } else {
+          potential_moves_board[row][i] = 'x';  // Capture opponent's piece
+          break;                                // Stop after capturing
+        }
+      }
+      break;
+
+    case 'R':
+      // vertically up
+      for (int i = row + 1; (i < 8 && !is_check_blocker(row, col)); i++) {
+        if (Board[i][col] == 'o')
+          potential_moves_board[i][col] = 'x';
+        else if (Board[i][col] < 90)
+          break;  // Stop at own piece
+        else {
+          potential_moves_board[i][col] = 'x';  // Capture opponent's piece
+          break;                                // Stop after capturing
+        }
+      }
+
+      // Check vertically down
+      for (int i = row - 1; (i >= 0 && !is_check_blocker(row, col)); i--) {
+        if (Board[i][col] == 'o')
+          potential_moves_board[i][col] = 'x';
+        else if (Board[i][col] < 90)
+          break;  // Stop at own piece
+        else {
+          potential_moves_board[i][col] = 'x';  // Capture opponent's piece
+          break;                                // Stop after capturing
+        }
+      }
+
+      // Check horizontally right
+      for (int i = col + 1; (i < 8 && !is_check_blocker(row, col)); i++) {
+        if (Board[row][i] == 'o') {
+          potential_moves_board[row][i] = 'x';
+        } else if (Board[row][i] < 90) {
+          if (col == 0 && Board[row][i] == 'K' && !lb_rook_moved && !black_king_moved){
+            potential_moves_board[row][i-1] = 'x';
+            castling_enable = true;
+          }
+          break;  // Stop at own piece
+        } else {
+          potential_moves_board[row][i] = 'x';  // Capture opponent's piece
+          break;                                // Stop after capturing
+        }
+      }
+
+      // Check horizontally left
+      for (int i = col - 1; (i >= 0 && !is_check_blocker(row, col)); i--) {
+        if (Board[row][i] == 'o') {
+          potential_moves_board[row][i] = 'x';
+        } else if (Board[row][i] < 90) {
+          if (col == 7 && Board[row][i] == 'k' && !rb_rook_moved && !black_king_moved){
+            potential_moves_board[row][i+1] = 'x';
+            castling_enable = true;
+          }
+          break;  // Stop at own piece
+        } else {
+          potential_moves_board[row][i] = 'x';  // Capture opponent's piece
+          break;                                // Stop after capturing
+        }
+      }
+      break;
+
+    /******************************************************** KNIGHTS ***********************************************************/
+    case 'n':
+      
+      for (int i=0; (i< 8 && !is_check_blocker(row, col)); i++){
+        int dx[8] = {-1, -2, -2, -1, 1, 2, 2, 1};
+        int dy[8] = {-2, -1, 1, 2, 2, 1, -1, -2};
+      
+        if (!((row + dy[i]) >= 0 && (row + dy[i]) < 8 && (col + dx[i]) >= 0 && ((col + dx[i]) < 8) ))
+          continue;
+        if (Board[row + dy[i]][col + dx[i]] == 'o' || Board[row + dy[i]][col + dx[i]] < 90)          
+          potential_moves_board [row + dy[i]][col + dx[i]] = 'x';
+      }
+
+    break;
+
+    case 'N':
+      for (int i=0; (i< 8 && !is_check_blocker(row, col)); i++){
+        int dx[7] = {-1, -2, -2, -1, 1, 2, 2, 1};
+        int dy[7] = {-2, -1, 1, 2, 2, 1, -1, -2};
+
+        if (!((row + dy[i]) >= 0 && (row + dy[i]) < 8 && (col + dx[i]) >= 0 && (col + dx[i]) < 8))
+          continue;
+        if (Board[row + dy[i]][col + dx[i]] == 'o' || Board[row + dy[i]][col + dx[i]] > 97)
+          potential_moves_board [row + dy[i]][col + dx[i]] = 'x';
+      }
+
+    break;
+
+    /******************************************************** BISHOPS ***********************************************************/
+    case 'b':
+      // up right
+      for (int i = 1; row + i < 8 && col + i < 8 && !is_check_blocker(row, col); i++) {
+        if (Board[row + i][col + i] == 'o') {
+          potential_moves_board[row + i][col + i] = 'x';
+        } else if (Board[row + i][col + i] >= 'a' &&
+                   Board[row + i][col + i] <= 'z') {
+          break;  // Stop at own piece
+        } else {
+          potential_moves_board[row + i][col + i] =
+              'x';  // Capture opponent's piece
+          break;    // Stop after capturing
+        }
+      }
+
+      // up left
+      for (int i = 1; row + i < 8 && col - i >= 0 && !is_check_blocker(row, col); i++) {
+        if (Board[row + i][col - i] == 'o') {
+          potential_moves_board[row + i][col - i] = 'x';
+        } else if (Board[row + i][col - i] >= 'a' &&
+                   Board[row + i][col - i] <= 'z') {
+          break;  // Stop at own piece
+        } else {
+          potential_moves_board[row + i][col - i] =
+              'x';  // Capture opponent's piece
+          break;    // Stop after capturing
+        }
+      }
+
+      // Check diagonally down and right
+      for (int i = 1; row - i >= 0 && col + i < 8 && !is_check_blocker(row, col); i++) {
+        if (Board[row - i][col + i] == 'o') {
+          potential_moves_board[row - i][col + i] = 'x';
+        } else if (Board[row - i][col + i] >= 'a' &&
+                   Board[row - i][col + i] <= 'z') {
+          break;  // Stop at own piece
+        } else {
+          potential_moves_board[row - i][col + i] =
+              'x';  // Capture opponent's piece
+          break;    // Stop after capturing
+        }
+      }
+
+      // Check diagonally down and left
+      for (int i = 1; row - i >= 0 && col - i >= 0 && !is_check_blocker(row, col); i++) {
+        if (Board[row - i][col - i] == 'o') {
+          potential_moves_board[row - i][col - i] = 'x';
+        } else if (Board[row - i][col - i] >= 'a' &&
+                   Board[row - i][col - i] <= 'z') {
+          break;  // Stop at own piece
+        } else {
+          potential_moves_board[row - i][col - i] =
+              'x';  // Capture opponent's piece
+          break;    // Stop after capturing
+        }
+      }
+      break;
+
+    case 'B':
+      for (int i = 1; row + i < 8 && col + i < 8 && !is_check_blocker(row, col); i++) {
+        if (Board[row + i][col + i] == 'o') {
+          potential_moves_board[row + i][col + i] = 'x';
+        } else if (Board[row + i][col + i] >= 'A' &&
+                   Board[row + i][col + i] <= 'Z') {
+          break;  // Stop at own piece
+        } else {
+          potential_moves_board[row + i][col + i] =
+              'x';  // Capture opponent's piece
+          break;    // Stop after capturing
+        }
+      }
+
+      // Check diagonally up and left
+      for (int i = 1; row + i < 8 && col - i >= 0 && !is_check_blocker(row, col); i++) {
+        if (Board[row + i][col - i] == 'o') {
+          potential_moves_board[row + i][col - i] = 'x';
+        } else if (Board[row + i][col - i] >= 'A' &&
+                   Board[row + i][col - i] <= 'Z') {
+          break;  // Stop at own piece
+        } else {
+          potential_moves_board[row + i][col - i] =
+              'x';  // Capture opponent's piece
+          break;    // Stop after capturing
+        }
+      }
+
+      // Check diagonally down and right
+      for (int i = 1; row - i >= 0 && col + i < 8 && !is_check_blocker(row, col); i++) {
+        if (Board[row - i][col + i] == 'o') {
+          potential_moves_board[row - i][col + i] = 'x';
+        } else if (Board[row - i][col + i] >= 'A' &&
+                   Board[row - i][col + i] <= 'Z') {
+          break;  // Stop at own piece
+        } else {
+          potential_moves_board[row - i][col + i] =
+              'x';  // Capture opponent's piece
+          break;    // Stop after capturing
+        }
+      }
+
+      // Check diagonally down and left
+      for (int i = 1; row - i >= 0 && col - i >= 0 && !is_check_blocker(row, col); i++) {
+        if (Board[row - i][col - i] == 'o')
+          potential_moves_board[row - i][col - i] = 'x';
+        else if (Board[row - i][col - i] >= 'A' &&
+                 Board[row - i][col - i] <= 'Z')
+          break;  // stop going in that direction once we reach our own piece
+        else {
+          potential_moves_board[row - i][col - i] =
+              'x';  // Capture opponent's piece
+          break;    // break after capturing one of their peices
+        }
+      } 
+
+
+      break;
+
+    /******************************************************** QUEENS **********************************************************/
+    case 'q':
+
+    // HORIZONTAL AND VERTICAL 
+
+      for (int i = 1; row + i < 8 && col + i < 8 && !is_check_blocker(row, col); i++) { // UP
+        if (Board[row - i][col] == 'o') {
+          potential_moves_board[row - i][col] = 'x';
+        } else if (Board[row - i][col] > 97) {
+          break;  // Stop at own piece
+        } else {
+          potential_moves_board[row - i][col] = 'x';  
+          break;    // Stop after capturing
+        }
+      }
+
+      for (int i = 1; row + i < 8 && col + i < 8 && !is_check_blocker(row, col); i++) { // DOWN
+        if (Board[row + i][col] == 'o') {
+          potential_moves_board[row + i][col] = 'x';
+        } else if (Board[row + i][col] > 97) {
+          break;  // Stop at own piece
+        } else {
+          potential_moves_board[row + i][col] = 'x';  
+          break;    // Stop after capturing
+        }
+      }
+
+      for (int i = 1; row + i < 8 && col + i < 8 && !is_check_blocker(row, col); i++) { // RIGHT
+        if (Board[row][col + i] == 'o') {
+          potential_moves_board[row][col + i] = 'x';
+        } else if (Board[row - i][col] > 97) {
+          break;  // Stop at own piece
+        } else {
+          potential_moves_board[row][col + i] = 'x';  
+          break;    // Stop after capturing
+        }
+      }
+
+      for (int i = 1; row + i < 8 && col + i < 8 && !is_check_blocker(row, col); i++) { // LEFT
+        if (Board[row][col - i] == 'o') {
+          potential_moves_board[row][col - i] = 'x';
+        } else if (Board[row][col - i] > 97) {
+          break;  // Stop at own piece
+        } else {
+          potential_moves_board[row][col - i] = 'x';  
+          break;    // Stop after capturing
+        }
+      }
+
+      // DIAGONALS
+      // diagonal up right
+      for (int i = 1; row + i < 8 && col + i < 8 && !is_check_blocker(row, col); i++) {
+        if (Board[row + i][col + i] == 'o') {
+          potential_moves_board[row + i][col + i] = 'x';
+        } else if (Board[row + i][col + i] > 97) {
+          break;  // Stop at own piece
+        } else {
+          potential_moves_board[row + i][col + i] = 'x';  
+          break;    // Stop after capturing
+        }
+      }
+
+      // diagonal up left
+      for (int i = 1; row + i < 8 && col - i >= 0 && !is_check_blocker(row, col); i++) {
+        if (Board[row + i][col - i] == 'o') {
+          potential_moves_board[row + i][col - i] = 'x';
+        } else if (Board[row + i][col - i] > 97) {
+          break;  // Stop at own piece
+        } else {
+          potential_moves_board[row + i][col - i] = 'x';  
+          break;    // Stop after capturing
+        }
+      }
+
+      // diagonally down right
+      for (int i = 1; row - i >= 0 && col + i < 8 && !is_check_blocker(row, col); i++) {
+        if (Board[row - i][col + i] == 'o') {
+          potential_moves_board[row - i][col + i] = 'x';
+        } else if (Board[row - i][col + i] > 97) {
+          break;  // Stop at own piece
+        } else {
+          potential_moves_board[row - i][col + i] = 'x';  
+          break;    // Stop after capturing
+        }
+      }
+
+      // diagonally down  left
+      for (int i = 1; row - i >= 0 && col - i >= 0 && !is_check_blocker(row, col); i++) {
+        if (Board[row - i][col - i] == 'o') {
+          potential_moves_board[row - i][col - i] = 'x';
+        } else if (Board[row - i][col - i] > 97) {
+          break;  // Stop at own piece
+        } else {
+          potential_moves_board[row - i][col - i] = 'x';  
+          break;    // Stop after capturing
+        }
+      }
+
+    break;
+
+    case 'Q':
+     // HORIZONTAL AND VERTICAL 
+
+      for (int i = 1; row + i < 8 && col + i < 8 && !is_check_blocker(row, col); i++) { // UP
+        if (Board[row - i][col] == 'o') {
+          potential_moves_board[row - i][col] = 'x';
+        } else if (Board[row - i][col] < 90) {
+          break;  // Stop at own piece
+        } else {
+          potential_moves_board[row - i][col] = 'x';  
+          break;    // Stop after capturing
+        }
+      }
+
+      for (int i = 1; row + i < 8 && col + i < 8 && !is_check_blocker(row, col); i++) { // DOWN
+        if (Board[row + i][col] == 'o') {
+          potential_moves_board[row + i][col] = 'x';
+        } else if (Board[row + i][col] < 90) {
+          break;  // Stop at own piece
+        } else {
+          potential_moves_board[row + i][col] = 'x';  
+          break;    // Stop after capturing
+        }
+      }
+
+      for (int i = 1; row + i < 8 && col + i < 8 && !is_check_blocker(row, col); i++) { // RIGHT
+        if (Board[row][col + i] == 'o') {
+          potential_moves_board[row][col + i] = 'x';
+        } else if (Board[row - i][col] < 90) {
+          break;  // Stop at own piece
+        } else {
+          potential_moves_board[row][col + i] = 'x';  
+          break;    // Stop after capturing
+        }
+      }
+
+      for (int i = 1; row + i < 8 && col + i < 8 && !is_check_blocker(row, col); i++) { // LEFT
+        if (Board[row][col - i] == 'o') {
+          potential_moves_board[row][col - i] = 'x';
+        } else if (Board[row][col - i] < 90) {
+          break;  // Stop at own piece
+        } else {
+          potential_moves_board[row][col - i] = 'x';  
+          break;    // Stop after capturing
+        }
+      }
+
+      // DIAGONALS
+
+      // diagonal up right
+      for (int i = 1; row + i < 8 && col + i < 8 && !is_check_blocker(row, col); i++) {
+        if (Board[row + i][col + i] == 'o') {
+          potential_moves_board[row + i][col + i] = 'x';
+        } else if (Board[row + i][col + i] < 90) {
+          break;  // Stop at own piece
+        } else {
+          potential_moves_board[row + i][col + i] = 'x';  
+          break;    // Stop after capturing
+        }
+      }
+
+      // diagonal up left
+      for (int i = 1; row + i < 8 && col - i >= 0 && !is_check_blocker(row, col); i++) {
+        if (Board[row + i][col - i] == 'o') {
+          potential_moves_board[row + i][col - i] = 'x';
+        } else if (Board[row + i][col - i] < 90) {
+          break;  // Stop at own piece
+        } else {
+          potential_moves_board[row + i][col - i] = 'x';  
+          break;    // Stop after capturing
+        }
+      }
+
+      // diagonally down right
+      for (int i = 1; row - i >= 0 && col + i < 8 && !is_check_blocker(row, col); i++) {
+        if (Board[row - i][col + i] == 'o') {
+          potential_moves_board[row - i][col + i] = 'x';
+        } else if (Board[row - i][col + i] < 90) {
+          break;  // Stop at own piece
+        } else {
+          potential_moves_board[row - i][col + i] = 'x';  
+          break;    // Stop after capturing
+        }
+      }
+
+      // diagonally down  left
+      for (int i = 1; row - i >= 0 && col - i >= 0 && !is_check_blocker(row, col); i++) {
+        if (Board[row - i][col - i] == 'o') {
+          potential_moves_board[row - i][col - i] = 'x';
+        } else if (Board[row - i][col - i] < 90) {
+          break;  // Stop at own piece
+        } else {
+          potential_moves_board[row - i][col - i] = 'x';  
+          break;    // Stop after capturing
+        }
+      }
+    break;
+
+    /******************************************************** KINGS **********************************************************/
+    case 'k':
+      for (int i=-1; i< 2; i++){
+        for (int j = -1; j<2; j++){
+          if ((row+i) >= 0 || (row+i) < 8 || (col+j) >= 0 || (col+j) < 8){
+            if (Board[row+i][col+j] == 'o' || Board[row+i][col+j] < 90)
+              potential_moves_board[row+i][col+j] = 'x';
+          }
+        }
+      }
+      break;
+
+    case 'K':
+      for (int i=-1; i< 2; i++){
+        for (int j = -1; j<2; j++){
+          if ((row+i) >= 0 || (row+i) < 8 || (col+j) >= 0 || (col+j) < 8){
+            if (Board[row+i][col+j] == 'o' || Board[row+i][col+j] > 97)
+              potential_moves_board[row+i][col+j] = 'x';
+          }
+        }
+      }
+    break; 
+
+  }
+}
+
+bool is_check_blocker (int row, int col){
+  if (Board[row][col] > 97){ // white piece
+    for (int i = 0; i <8; i++){
+      for (int j = 0; j<8; j++){
+        if (Board[i][j] == 'k' && Board[row][col] > 97){
+          // found the king
+          int dy = row - i; // distance away from the piece
+          int dx = col - j;
+
+          if (dx == 0 || dy == 0 || dx == dy || dx == -dy){
+            dy = (dy < 0) ? -1 : 1;
+            dx = (dx < 0) ? -1 : 1;
+            for (int k = 0; (k < 8 && (row + k*dy)<8 && (row + k*dy)>= 0 
+            && (col + k*dx)<8 && (col + k*dx) >= 0); k++){
+              int posy = row + k*dy;
+              int posx = col + k*dx;
+              if ((dx == dy || dx == -dy) && 
+              (Board[posy][posx] == 'B' || Board[posy][posx] == 'Q')){ // bishop or queen
+                return true;
+              }
+              else if ((dx == 0 || dy == 0) && 
+              (Board[posy][posx] == 'R' || Board[posy][posx] == 'Q')){
+                return true;
+              }
+              
+
+            }
+            return false;
+          } 
+          // not in the path to block a check
+          return false;
+        }
+        else if (Board[i][j] == 'K' && Board[row][col] < 90){
+          // found the king
+          int dy = i - row; // distance away from the piece
+          int dx = j - col;
+
+          if (dx == 0 || dy == 0 || dx == dy || dx == -dy){
+            dy = (dy < 0) ? -1 : 1;
+            dx = (dx < 0) ? -1 : 1;
+            for (int k = 1; (k < 8 && (row + k*dy)<8 && (row + k*dy)>= 0 
+            && (col + k*dx)<8 && (col + k*dx) >= 0); k++){
+              int posy = row + k*dy;
+              int posx = col + k*dx;
+              if ((dx == dy || dx == -dy) && 
+              (Board[posy][posx] == 'b' || Board[posy][posx] == 'q')){ // bishop or queen
+                return true;
+              }
+              else if ((dx == 0 || dy == 0) && 
+              (Board[posy][posx] == 'r' || Board[posy][posx] == 'q')){
+                return true;
+              }
+            }
+            return false;
+          }
+          return false;
+        }
+      }
+    }
+
+  }
+}
+
+bool is_checked(int row, int col){
+  for (int i=-1; i<2 ; i++){
+    for (int j=-1; j<2; j++){
+      for (int k = 1; j<8; k++){
+          int posy = row + (k*i);
+          int posx = col + (k*j);
+
+        if (posy < 0 || posy > 7 || posx < 0 || posx > 7)
+          break; // stop proceeding if we are out of boands
+
+        if (Board[row][col] > 97){ // white piece
+          if (Board[posy][posx] > 97) // blocked by our piece
+            break;
+
+          if (abs(i) == 1 && abs(j) == 1 && 
+            ((k == 1 && Board[posy][posx] == 'P') || Board[posy][posx] == 'Q'
+            || Board[posy][posx] == 'B'))
+            // checking diagonal direction
+            return true;
+
+          else if ((abs(i) == 0 || abs(j) == 0) && 
+            (Board[posy][posx] == 'Q'|| Board[posy][posx] == 'R'))
+            // checking horizontal and vertical direction
+            return true;
+          if (((abs(i) == 2 && abs(j) == 1) || (abs(i) == 1 && abs(j) == 2)) && 
+            Board[posy][posx] == 'N')
+            // checking for knights around the king
+            return true;
+        } 
+        else { // black piece
+          if (Board[posy][posx] < 90) // blocked by our piece
+            break;
+
+          if (abs(i) == 1 && abs(j) == 1 && 
+            ((k == 1 && Board[posy][posx] == 'p') || Board[posy][posx] == 'q'
+            || Board[posy][posx] == 'b'))
+            // checking diagonal direction
+            return true;
+
+          else if ((abs(i) == 0 || abs(j) == 0) && 
+            (Board[posy][posx] == 'q'|| Board[posy][posx] == 'r'))
+            // checking horizontal and vertical direction
+            return true;
+          if (((abs(i) == 2 && abs(j) == 1) || (abs(i) == 1 && abs(j) == 2)) && 
+            Board[posy][posx] == 'n')
+            // checking for knights around the king
+            return true;        
+        }
+        
+      }
+    }
+  }
+  return false;
+}
+
+void update_board(int startingRow, int startingCol, int finalRow, int finalCol) {
+    int posy = startingRow;
+    int posx = startingCol;
+  int row = finalRow;
+  int col = finalCol;
+   /********************** EN PASSANT *********************/
+if (En_passant_enable && row == En_passant[0] && col == En_passant[1])
+    Board[posy][posx -1] = 'o'; // elimintate piece
+  
+  else if (En_passant_enable && row == En_passant[2] && col == En_passant[3])
+    Board[posy][posx +1] = 'o';
+
+  /********************** CASTLING *********************/
+  else if(castling_enable && col == 3 && move[0] == 'r'){
+    Board[7][4] = 'o'; // move the king
+    Board[7][2] = 'k';  
+    white_king_moved = true;
+    castling_enable = false;
+  }
+  else if(castling_enable && col == 5 && move[0] == 'r' ){
+    Board[7][4] = 'o'; // move the king
+    Board[7][6] = 'k';  
+    white_king_moved = true;
+    castling_enable = false;
+  }
+  else if(castling_enable && col == 3 && move[0] == 'R'){
+    Board[0][4] = 'o'; // move the king
+    Board[0][2] = 'K';  
+    black_king_moved = true;
+    castling_enable = false;
+  }
+  else if(castling_enable && col == 5 && move[0] == 'R'){
+    Board[0][4] = 'o'; // move the king
+    Board[0][2] = 'K';  
+    black_king_moved = true;
+    castling_enable = false;
+  }
+  
+  Board[row][col] = move[0];// move piece to the destination
+  Board[posy][posx] = 'o';  // set the orignal position to empty - 'o'
 }
