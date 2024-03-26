@@ -147,14 +147,6 @@ int bk_moves = 0;
  ******************************************************** MAIN ****************************************************************
  ***************************************************************************************************************************/
 
-int legal_move_checker(char piece, int row, int col) {
-  
-// legal_move = true;  assume move is legal until proven it is not
-potential
-
-  
-}
-
 void check_turn() {
   if (turn == 'w' && (move[0] == 'p' || move[0] == 'r' || move[0] == 'n' ||
                       move[0] == 'b' || move[0] == 'k' || move[0] == 'q')) {
@@ -877,7 +869,7 @@ bool is_checked(int row, int col){
   return false;
 }
 
-void update_board(int posy, int posx) {
+void update_board(int startingRow, int startingCol, int finalRow, int finalCol) {
   int row = move[2] - '1';
   int col = move[1] - 'a';
   if (potential_moves_board[row][col] !=
