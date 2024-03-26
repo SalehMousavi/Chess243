@@ -3,10 +3,11 @@
 void getMove(short int* moveRow, short int* moveCol) {
    mousex = (int) (mousex & 0x1FF);
    mousey = (int) (mousey & 0xFF);
-   printf("Mousex: %d, Mousey: %d\n", mousex, mousey);
+    if (mousex < 39 || mousex > 279) {
+        return;
+    }
    *moveCol = (short int)((mousex - 39) / WIDTH);
    *moveRow = (short int)(mousey / HEIGHT);
-   printf("MouseR: %d, MouseC: %d\n", *moveRow, *moveCol);
    return;
 }
 

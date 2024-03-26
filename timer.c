@@ -39,31 +39,42 @@ void HEX_PS2(char b1, char b2, char b3) {
 }
 
 
-void TIMER_ISR() {
+void timer_ISR() {
     volatile int * interval_timer_ptr = (int *)TIMER_BASE;
     *(interval_timer_ptr) = 0; // clear the interrupt
     if(colour == WHITE){
-        whiteTime -= 1;
+        if(whiteTime == 0) {
+			whiteTime = 60*10;
+			gameOver = 1;
+		}
+		whiteTime -= 1;
     }
     else {
+		if(blackTime == 0) {
+			blackTime = 60*10;
+			gameOver = 1;
+		}
         blackTime -= 1;
     }
-    dislayTime();
+    displayTime();
 }
 
 void displayTime() {
-    int minutesW, secondsTensW, secondsW;
     int minutes, secondsTens, seconds;
-    minutesW = whiteTime / 60;
-    secondsTensW = (whiteTime - (minutesW*60)) / 10;
-    secondsW = (whiteTime - (minutesW*60) - (secondsTensW*10));
-    minutes = blackTime / 60;
-    secondsTens = (blackTime - (minutes*60)) / 10;
-    seconds = (blackTime - (minutes*60) - (secondsTens*10));
+	if(colour == WHITE) {
+		minutes = whiteTime / 60;
+		secondsTens = (whiteTime - (minutes*60)) / 10;
+		seconds = (whiteTime - (minutes*60) - (secondsTens*10));
+	}
+	else {
+		minutes = blackTime / 60;
+		secondsTens = (blackTime - (minutes*60)) / 10;
+		seconds = (blackTime - (minutes*60) - (secondsTens*10));
+	}
     char byte1, byte2, byte3;
-    byte1 = ((minutes&0xF) << 4) | secondsTens;
-    byte2 = ((seconds & 0xF) << 4) | minutesW;
-    byte3 = ((secondsTensW & 0xF) << 4) | minutes;
+    byte1 = ((minutes&0xF));
+    byte2 = ((secondsTens & 0xF) << 4) | (seconds&0xF);
+	byte3 = 0;
     HEX_PS2(byte1, byte2, byte3);
     return;
 }

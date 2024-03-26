@@ -1960,6 +1960,9 @@ void mouse_ISR() {
 void getMove(short int* moveRow, short int* moveCol) {
    mousex = (int) (mousex & 0x1FF);
    mousey = (int) (mousey & 0xFF);
+    if (mousex < 39 || mousex > 279) {
+        return;
+    }
    *moveCol = (short int)((mousex - 39) / WIDTH);
    *moveRow = (short int)(mousey / HEIGHT);
    return;
