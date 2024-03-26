@@ -37,12 +37,12 @@ bool is_check_blocker (int row, int col);
  ***************************************************************************************************************************/
 char Board[8][8] = {'R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R', 
                     'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 
-                    'o', 'o', 'o', 'o', 'R', 'o', 'o', 'o', 
-                    'o', 'o', 'q', 'o', 'o', 'o', 'o', 'o', 
                     'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 
-                    'o', 'o', 'Q', 'o', 'o', 'o', 'B', 'o', 
-                    'p', 'p', 'p', 'p', 'n', 'p', 'p', 'p', 
-                    'r', 'n', 'b', 'q', 'k', 'o', 'o', 'r'};
+                    'o', 'o', 'q', 'o', 'o', 'o', 'o', 'o', 
+                    'o', 'o', 'o', 'o', 'R', 'o', 'o', 'o', 
+                    'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 
+                    'p', 'p', 'p', 'p', 'o', 'p', 'p', 'p', 
+                    'r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'};
 // capital resembles black pieces and lower case resembles white pieces
 
 char potential_moves_board[8][8] = {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
@@ -737,6 +737,8 @@ void potential_moves(char piece, int row, int col) {
   }
 }
 
+// void potential_check_blocker ()
+
 bool is_check_blocker (int row, int col){
   if (Board[row][col] > 97){ // white piece
     for (int i = 0; i <8; i++){
@@ -799,6 +801,8 @@ bool is_check_blocker (int row, int col){
 
   }
 }
+
+
 
 
 bool is_checked(int row, int col){
