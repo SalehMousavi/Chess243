@@ -12,7 +12,7 @@ void interrupt_handler(void);
 void setupMouse();
 void setupInterrupts(); 
 void movePiece(int startingRow, int startingCol, int finalRow, int finalCol);
-void checkLegality(int startingRow, int startingCol, int finalRow, int finalCol, char* moveLegal);
+void checkLegality(int finalRow, int finalCol, char* moveLegal);
 void checkMove(short int moveRow, short int moveCol, char colour, char* moveValid, char startedMove);
 void getMove(short int* moveRow, short int* moveCol);
 void mouse_ISR(void);
@@ -1671,9 +1671,9 @@ void main(void)
             else if(moveValid == 1 && startedMove == 1 && undoMove != 1) {
                 finalRow = moveRow;
                 finalCol = moveCol;
-                checkLegality(startingRow, startingCol, finalRow, finalCol, &moveLegal);
+                checkLegality(finalRow, finalCol, &moveLegal);
                 if(moveLegal) {
-                    movePiece(startingRow, startingCol, finalRow, finalCol);
+                    update_board(startingRow, startingCol, finalRow, finalCol);
                     colour = colour == WHITE? BLACK: WHITE;//change colour
                     startedMove = 0;
                 }
@@ -1876,29 +1876,8 @@ void checkMove(short int moveRow, short int moveCol, char colour, char* moveVali
         }
     }
     else {//already selected starting position
-        switch(colour) {
-            case BLACK: {
-                if(Board[moveRow][moveCol] > 'a' && Board[moveRow][moveCol] < 'z') {
-                    *(moveValid) = 1;
-                }
-                else {
-                    *(moveValid) = 0;
-                }
-                break;
-            }
-
-            case WHITE: {
-                if((Board[moveRow][moveCol] > 'A' && Board[moveRow][moveCol] < 'Z') || Board[moveRow][moveCol] == 'o') {
-                    *(moveValid) = 1;
-                }
-                else {
-                    *(moveValid) = 0;
-                }
-                break;
-            }
-        }
+        *(moveValid) = 1;
     }
-    
     return;
 }
 
@@ -1920,11 +1899,6 @@ void interrupt_handler(void) {
 void setupInterrupts() {
     NIOS2_WRITE_IENABLE(0x81);
     NIOS2_WRITE_STATUS(1);
-    return;
-}
-
-void checkLegality(int startingRow, int startingCol, int finalRow, int finalCol, char* moveLegal) {
-    *moveLegal = 1;
     return;
 }
 
@@ -2007,68 +1981,6 @@ void displayTime() {
 }
 
 
-void getMove(short int* moveRow, short int* moveCol) {
-   mousex = (int) (mousex & 0x1FF);
-   mousey = (int) (mousey & 0xFF);
-    if (mousex < 39 || mousex > 279) {
-        return;
-    }
-   *moveCol = (short int)((mousex - 39) / WIDTH);
-   *moveRow = (short int)(mousey / HEIGHT);
-   return;
-}
-
-void checkMove(short int moveRow, short int moveCol, char colour, char* moveValid, char startedMove) {
-    if(startedMove == 0) {//selecting a starting position for move
-        switch(colour) {
-            case BLACK: {
-                if(Board[moveRow][moveCol] > 'A' && Board[moveRow][moveCol] < 'Z' && Board[moveRow][moveCol] != 'o') {
-                    *(moveValid) = 1;
-                }
-                else {
-                    *(moveValid) = 0;
-                }
-                break;
-            }
-
-            case WHITE: {
-                if(Board[moveRow][moveCol] > 'a' && Board[moveRow][moveCol] < 'z' && Board[moveRow][moveCol] != 'o') {
-                    *(moveValid) = 1;
-                }
-                else {
-                    *(moveValid) = 0;
-                }
-                break;
-            }
-        }
-    }
-    else {//already selected starting position
-        switch(colour) {
-            case BLACK: {
-                if(Board[moveRow][moveCol] > 'a' && Board[moveRow][moveCol] < 'z') {
-                    *(moveValid) = 1;
-                }
-                else {
-                    *(moveValid) = 0;
-                }
-                break;
-            }
-
-            case WHITE: {
-                if((Board[moveRow][moveCol] > 'A' && Board[moveRow][moveCol] < 'Z') || Board[moveRow][moveCol] == 'o') {
-                    *(moveValid) = 1;
-                }
-                else {
-                    *(moveValid) = 0;
-                }
-                break;
-            }
-        }
-    }
-    
-    return;
-}
-
 void checkLegality(int finalRow, int finalCol, char* moveLegal) {
    if(potential_moves_board[finalRow][finalCol] == 'x') {
     *moveLegal = 1;
@@ -2078,82 +1990,6 @@ void checkLegality(int finalRow, int finalCol, char* moveLegal) {
    }
     return;
 }
-
-#include <math.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-/***************************************************************************************************************************
- ******************************************************** FUNCTIONS
- ***********************************************************
- ***************************************************************************************************************************/
-void print_board();
-void print_potential_board();
-void check_turn();      // this checks if the turn inputed by the user is valid,
-                        // swaps turns if it is
-void position_legal();  // this checks if the piece is at the start end
-                        // locations are valid, if the destination is able to be
-                        // reached by the piece in one move, and if there are
-                        // peices around it.
-void obstructed_path();  // checks if the piece being moved has other pieces in
-                         // its path, if so move is not legal unless its a
-                         // knight
-bool is_checked(int row, int col);  // this function checks if a player is checked, if it is
-                    // then only the moves that block the check are allowed or
-                    // if the kind moves out of the checked position and doesnt
-                    // enter another checked postion
-
-void update_board(
-    int posy,
-    int posx);  // this function is called once the move has been cleared
-void potential_moves(char piece, int row, int col);
-
-bool check_endgame();
-bool is_check_blocker (int row, int col);
-
-/***************************************************************************************************************************
- ******************************************************** GLOBALS*************************************************************
- ***************************************************************************************************************************/
-char Board[8][8] = {'R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R', 
-                    'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 
-                    'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 
-                    'o', 'o', 'q', 'o', 'o', 'o', 'o', 'o', 
-                    'o', 'o', 'o', 'o', 'R', 'o', 'o', 'o', 
-                    'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 
-                    'p', 'p', 'p', 'p', 'o', 'p', 'p', 'p', 
-                    'r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'};
-// capital resembles black pieces and lower case resembles white pieces
-
-char potential_moves_board[8][8] = {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
-                                    'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
-                                    'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
-                                    'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
-                                    'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
-                                    'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
-                                    'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
-                                    'o'};  // this marks the potential moves
-
-char move[4] = {'P', 'a',
-                '3'};  // 5 characters (piece, x1, y1, x2, y2) + null terminator
-char turn = 'w';
-bool legal_move = true;
-
-int En_passant[3]; // marks the location of En Passant pawn
-bool En_passant_enable = false;
-
-bool rw_rook_moved = false;
-bool lw_rook_moved = false;
-bool rb_rook_moved = false;
-bool lb_rook_moved = false;
-bool white_king_moved = false;
-bool black_king_moved = false;
-
-bool castling_enable = false;
-
-int wk_moves = 0; // used to determien end game
-int bk_moves = 0;
 
 /***************************************************************************************************************************
  ******************************************************** MAIN ****************************************************************
