@@ -2632,6 +2632,7 @@ bool is_check_blocker (int row, int col){
       }
     }
   }
+  return false;
 }
 
 bool is_checked(int row, int col){
