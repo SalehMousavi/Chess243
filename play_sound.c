@@ -1,7 +1,4 @@
-#include <stdlib.h>
-#include <stdio.h>
-
-int audio_data[] = {
+int audio_data[386] = {
 0x1400, 0x1500, 0x0400, 0x0300, 0xdefe, 0xdefe, 0x98fb, 0x9afb, 
 0x64f5, 0x62f5, 0xaced, 0xb0ed, 0xafeb, 0xaceb, 0x57fa, 0x59fa, 
 0xc316, 0xc216, 0x6d29, 0x6c29, 0x4024, 0x3e24, 0x4311, 0x4311, 
@@ -65,16 +62,16 @@ typedef struct audio_reg {
 } audio;
 
 void main() {
-    audio * const audio_ptr = (audio*)0xFF203040;
-    audio_ptr->control = 0b1100;  // set control register to 1100 to clear input and output fifos
-    audio_ptr->control = 0x0; // set to zero to allow samples to flow into the fifos
-
-    for (int i = 0; i < sizeof(audio_data); i++) {
-        while (audio_ptr->wslc == 0); // loop if no empty output fifo, wait until there is empty ones
-        audio_ptr -> ldata = audio_data[i];
-        audio_ptr -> rdata = audio_data[i];
-        i++;
+    audio* audio_ptr = (audio*)0xFF203040;
+    audio_ptr->control = (int)0b1100;  // set control register to 1100 to clear input and output fifos
+    audio_ptr->control = (int)0b0; // set to zero to allow samples to flow into the fifos
+    while(1){
+        for (int i = 0; i < 386; i++) {
+            while (audio_ptr->wslc == 0);// loop if no empty output fifo, wait until there is empty ones
+            audio_ptr->ldata = (int)audio_data[i];
+            audio_ptr->rdata = (int)audio_data[i];
+        }
     }
-
+    
     // printf("%i", sizeof(audio_data));
 } 
