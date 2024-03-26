@@ -62,8 +62,13 @@ void checkMove(short int moveRow, short int moveCol, char colour, char* moveVali
     return;
 }
 
-void checkLegality(int startingRow, int startingCol, int finalRow, int finalCol, char* moveLegal) {
+void checkLegality(int finalRow, int finalCol, char* moveLegal) {
+   if(potential_moves_board[finalRow][finalCol] == 'x') {
     *moveLegal = 1;
+   }
+   else {
+    *moveLegal = 0;
+   }
     return;
 }
 
@@ -872,8 +877,7 @@ bool is_checked(int row, int col){
 void update_board(int startingRow, int startingCol, int finalRow, int finalCol) {
   int row = move[2] - '1';
   int col = move[1] - 'a';
-  if (potential_moves_board[row][col] !=
-      'x') {  // move is not one of the potential moves not legal
+  if (potential_moves_board[row][col] != 'x') {  // move is not one of the potential moves not legal
     printf("move not legal\n");
     legal_move = false;
     return;

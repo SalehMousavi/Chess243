@@ -42,11 +42,12 @@ void main(void)
                 startingRow = moveRow;
                 startingCol = moveCol;
                 startedMove = 1;
+                potential_moves(Board[moveRow][moveCol], moveRow, moveCol);
             }
             else if(moveValid == 1 && startedMove == 1 && undoMove != 1) {
                 finalRow = moveRow;
                 finalCol = moveCol;
-                checkLegality(startingRow, startingCol, finalRow, finalCol, &moveLegal);
+                checkLegality(finalRow, finalCol, &moveLegal);
                 if(moveLegal) {
                     movePiece(startingRow, startingCol, finalRow, finalCol);
                     colour = colour == WHITE? BLACK: WHITE;//change colour
