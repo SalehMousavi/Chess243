@@ -1,11 +1,9 @@
 /*******************************************************************************
  * This file provides address values that exist in the DE1-SoC Computer
  ******************************************************************************/
-#include <math.h>
+
 #include <stdbool.h>
-#include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
 void main(void);
 void interrupt_handler(void); 
@@ -156,7 +154,7 @@ volatile unsigned int blackTime = (10*60)-1;
 volatile unsigned int whiteTime = (10*60)-1;
 volatile char colour = WHITE; 
 
-volatile char potential_moves_board[8][8] = {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
+char potential_moves_board[8][8] = {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
                                     'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
                                     'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
                                     'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
@@ -1667,15 +1665,19 @@ void main(void)
                 startingRow = moveRow;
                 startingCol = moveCol;
                 startedMove = 1;
+
+                potential_moves(Board[moveRow][moveCol], moveRow, moveCol);
             }
             else if(moveValid == 1 && startedMove == 1 && undoMove != 1) {
                 finalRow = moveRow;
                 finalCol = moveCol;
                 checkLegality(finalRow, finalCol, &moveLegal);
+
+
                 if(moveLegal) {
-                    update_board(startingRow, startingCol, finalRow, finalCol);
-                    colour = colour == WHITE? BLACK: WHITE;//change colour
-                    startedMove = 0;
+                  update_board(startingRow, startingCol, finalRow, finalCol);
+                  colour = colour == WHITE? BLACK: WHITE;//change colour
+                  startedMove = 0;
                 }
                 else {
                     startedMove = 1;
@@ -2029,16 +2031,13 @@ bool check_endgame(){
  *********************************************************************************************/
 
 void potential_moves(char piece, int row, int col) {
+
   for (int i = 0; i < 8; i++) {  // erasing old potential moves
     for (int j = 0; j < 8; j++) {
       if (potential_moves_board[i][j] == 'x') 
         potential_moves_board[i][j] = 'o';
     }
   }
-  if (Board[row][col] !=
-      piece)  // if the piece is not there, no potential moves
-    return;
-
   switch (piece) {
     /******************************************************** PAWNS ***********************************************************/
     case 'p':
@@ -2078,14 +2077,13 @@ void potential_moves(char piece, int row, int col) {
       if (Board[row + 1][col] == 'o' && !is_check_blocker(row, col)) {  // if there is no piece in front
         potential_moves_board[row + 1][col] = 'x';
         if (row == 1 && Board[row+2][col] == 'o')
-          potential_moves_board[row + 2][col] =
-              'x';  // if its the first move, then two moves is available
+          potential_moves_board[row + 2][col] ='x';  // if its the first move, then two moves is available
       }
-      if (Board[row + 1][col + 1] > 122)  
+      if (Board[row + 1][col + 1] > 97)  
         potential_moves_board[row + 1][col + 1] =
             'x';  // if there are pieces on the diagonals of the pawn they can
                   // be eliminated
-      if (Board[row + 1][col - 1] > 122)
+      if (Board[row + 1][col - 1] > 97)
         potential_moves_board[row + 1][col - 1] = 'x';
       break;
 
@@ -2576,65 +2574,63 @@ void potential_moves(char piece, int row, int col) {
 // void potential_check_blocker ()
 
 bool is_check_blocker (int row, int col){
-  if (Board[row][col] > 97){ // white piece
-    for (int i = 0; i <8; i++){
-      for (int j = 0; j<8; j++){
-        if (Board[i][j] == 'k' && Board[row][col] > 97){
-          // found the king
-          int dy = row - i; // distance away from the piece
-          int dx = col - j;
 
-          if (dx == 0 || dy == 0 || dx == dy || dx == -dy){
-            dy = (dy < 0) ? -1 : 1;
-            dx = (dx < 0) ? -1 : 1;
-            for (int k = 0; (k < 8 && (row + k*dy)<8 && (row + k*dy)>= 0 
-            && (col + k*dx)<8 && (col + k*dx) >= 0); k++){
-              int posy = row + k*dy;
-              int posx = col + k*dx;
-              if ((dx == dy || dx == -dy) && 
-              (Board[posy][posx] == 'B' || Board[posy][posx] == 'Q')){ // bishop or queen
-                return true;
-              }
-              else if ((dx == 0 || dy == 0) && 
-              (Board[posy][posx] == 'R' || Board[posy][posx] == 'Q')){
-                return true;
-              }
-              
+  for (int i = 0; i <8; i++){
+    for (int j = 0; j<8; j++){
+      if (Board[i][j] == 'k' && Board[row][col] > 97){
+        // found the king
+        int dy = row - i; // distance away from the piece
+        int dx = col - j;
 
+        if (dx == 0 || dy == 0 || dx == dy || dx == -dy){
+          dy = (dy < 0) ? -1 : 1;
+          dx = (dx < 0) ? -1 : 1;
+          for (int k = 0; (k < 8 && (row + k*dy)<8 && (row + k*dy)>= 0 
+          && (col + k*dx)<8 && (col + k*dx) >= 0); k++){
+            int posy = row + k*dy;
+            int posx = col + k*dx;
+            if ((dx == dy || dx == -dy) && 
+            (Board[posy][posx] == 'B' || Board[posy][posx] == 'Q')){ // bishop or queen
+              return true;
             }
-            return false;
-          } 
-          // not in the path to block a check
+            else if ((dx == 0 || dy == 0) && 
+            (Board[posy][posx] == 'R' || Board[posy][posx] == 'Q')){
+              return true;
+            }
+            
+
+          }
           return false;
-        }
-        else if (Board[i][j] == 'K' && Board[row][col] < 90){
-          // found the king
-          int dy = i - row; // distance away from the piece
-          int dx = j - col;
+        } 
+        // not in the path to block a check
+        return false;
+      }
+      else if (Board[i][j] == 'K' && Board[row][col] < 90){
+        // found the king
+        int dy = i - row; // distance away from the piece
+        int dx = j - col;
 
-          if (dx == 0 || dy == 0 || dx == dy || dx == -dy){
-            dy = (dy < 0) ? -1 : 1;
-            dx = (dx < 0) ? -1 : 1;
-            for (int k = 1; (k < 8 && (row + k*dy)<8 && (row + k*dy)>= 0 
-            && (col + k*dx)<8 && (col + k*dx) >= 0); k++){
-              int posy = row + k*dy;
-              int posx = col + k*dx;
-              if ((dx == dy || dx == -dy) && 
-              (Board[posy][posx] == 'b' || Board[posy][posx] == 'q')){ // bishop or queen
-                return true;
-              }
-              else if ((dx == 0 || dy == 0) && 
-              (Board[posy][posx] == 'r' || Board[posy][posx] == 'q')){
-                return true;
-              }
+        if (dx == 0 || dy == 0 || dx == dy || dx == -dy){
+          dy = (dy < 0) ? -1 : 1;
+          dx = (dx < 0) ? -1 : 1;
+          for (int k = 1; (k < 8 && (row + k*dy)<8 && (row + k*dy)>= 0 
+          && (col + k*dx)<8 && (col + k*dx) >= 0); k++){
+            int posy = row + k*dy;
+            int posx = col + k*dx;
+            if ((dx == dy || dx == -dy) && 
+            (Board[posy][posx] == 'b' || Board[posy][posx] == 'q')){ // bishop or queen
+              return true;
             }
-            return false;
+            else if ((dx == 0 || dy == 0) && 
+            (Board[posy][posx] == 'r' || Board[posy][posx] == 'q')){
+              return true;
+            }
           }
           return false;
         }
+        return false;
       }
     }
-
   }
 }
 
@@ -2693,15 +2689,13 @@ bool is_checked(int row, int col){
   return false;
 }
 
-void update_board(int posy, int posx) {
-  int row = move[2] - '1';
-  int col = move[1] - 'a';
-  if (potential_moves_board[row][col] != 'x') {  // move is not one of the potential moves not legal
-    legal_move = false;
-    return;
-  }
+void update_board(int startingRow, int startingCol, int finalRow, int finalCol){
+  int row = finalRow;
+  int col = finalCol;
+  int posx = startingCol;
+  int posy = startingRow;
    /********************** EN PASSANT *********************/
-  else if (En_passant_enable && row == En_passant[0] && col == En_passant[1])
+  if (En_passant_enable && row == En_passant[0] && col == En_passant[1])
     Board[posy][posx -1] = 'o'; // elimintate piece
   
   else if (En_passant_enable && row == En_passant[2] && col == En_passant[3])
@@ -2733,6 +2727,6 @@ void update_board(int posy, int posx) {
     castling_enable = false;
   }
   
-  Board[row][col] = move[0];// move piece to the destination
+  Board[row][col] = Board[posy][posx];// move piece to the destination
   Board[posy][posx] = 'o';  // set the orignal position to empty - 'o'
 }
