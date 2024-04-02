@@ -2530,7 +2530,7 @@ void find_checking_piece (){
           int posx = king_col + k*j;
           if (Board[posy][posy] > a && Board[posy][posy] != 'o')
             break; // stop progressing when reaching our piece
-          if (dx == i || dx == -j){
+          if (i == j || i == -j){
             if (Board[posy][posx] == 'B'){
               checking_piece = 'B'; 
               checking_piece_row = posy;
