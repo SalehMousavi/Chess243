@@ -4,6 +4,13 @@
 
 #include <stdbool.h>
 #include <stdlib.h>
+#include <stdio.h>
+#define Z 90
+#define a 97
+
+/***************************************************************************************************************************
+******************************************************** FUNCTIONS***********************************************************
+***************************************************************************************************************************/
 
 void main(void);
 void interrupt_handler(void); 
@@ -16,10 +23,10 @@ void getMove(short int* moveRow, short int* moveCol);
 void mouse_ISR(void);
 void setupTimer();
 void HEX_PS2(char b1, char b2, char b3);
+void genPotentialMoves(int row, int col);
+void resetGame();
 void timer_ISR();
 void displayTime();
-void print_board();
-void print_potential_board();
 void check_turn();      // this checks if the turn inputed by the user is valid,
                         // swaps turns if it is
 void position_legal();  // this checks if the piece is at the start end
@@ -33,10 +40,23 @@ bool is_checked(int row, int col);  // this function checks if a player is check
                     // then only the moves that block the check are allowed or
                     // if the kind moves out of the checked position and doesnt
                     // enter another checked postion
-void update_board(int startingRow, int startingCol, int finalRow, int finalCol); 
+
+void update_board(int posy, int posx, int row, int col);  // this function is called once the move has been cleared
 void potential_moves(char piece, int row, int col);
+
 bool check_endgame();
-bool is_check_blocker (int row, int col);
+bool is_check_blocker (char piece, int row, int col);
+void piece_is_check_blocker(char piece, int dy, int dx, int row, int col);
+// if the piece is a check blocker the moves are limited and must be calculated differently
+
+void potential_moves_indirection(char piece, int dy, int dx, int row, int col);
+// finds the potnetial moves in a specific direction;
+
+void check_potential_moves(char piece); // checks if the potential moves are correct
+
+void find_checking_piece ();
+
+bool is_capturable (int row, int col);
 
 /* The assembly language code below handles CPU reset processing */
 void the_reset(void) __attribute__((section(".reset")));
@@ -112,7 +132,8 @@ void map(int, int, int*, int*);
 #endif
 
 #ifndef __NIOS2_CTRL_REG_MACROS__
-#define __NIOS2_CTRL_REG_MACROS__ /*****************************************************************************/
+#define __NIOS2_CTRL_REG_MACROS__ 
+/*****************************************************************************/
 /* Macros for accessing the control registers.                               */
 /*****************************************************************************/
 #define NIOS2_READ_STATUS(dest) \
@@ -132,6 +153,10 @@ do { dest = __builtin_rdctl(4); } while (0)
 #define NIOS2_READ_CPUID(dest) \
 do { dest = __builtin_rdctl(5); } while (0)
 #endif
+
+/***************************************************************************************************************************
+******************************************************** GLOBALS***********************************************************
+***************************************************************************************************************************/
 
 #ifndef global
 #define global
@@ -179,6 +204,13 @@ bool castling_enable = false;
 int wk_moves = 0; // used to determien end game
 int bk_moves = 0;
 
+int king_row;
+int king_col;
+
+char checking_piece; // for finding the checking piece
+int checking_piece_row;
+int checking_piece_col;
+
 char Board[8][8] = {
 'R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R',
 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P',
@@ -190,6 +222,9 @@ char Board[8][8] = {
 'r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'}; //8x8 gameboard global variable
 
 #endif
+/***************************************************************************************************************************
+********************************************************Image Arrays***********************************************************
+***************************************************************************************************************************/
 
 #ifndef pieces
 #define pieces
@@ -1340,6 +1375,9 @@ const unsigned short blackRookW[675] = {
 0xFFFF, 0xFFFF, 0xFFFF};
 
 #endif
+/***************************************************************************************************************************
+********************************************************Type Definitions***********************************************************
+***************************************************************************************************************************/
 
 #ifndef types
 #define types
@@ -1628,71 +1666,75 @@ void drawSelection(int Row, int Col) {
 
 void main(void)
 {
-    short int moveRow, moveCol;
-    char startedMove = 0;
-    char startingRow, startingCol;
-    char finalRow, finalCol;
-    char moveLegal = 0;
-    /* set front pixel buffer to Buffer 1 */
-    *(pixel_ctrl_ptr + 1) = (int) &Buffer1; // first store the address in the  back buffer
-    /* now, swap the front/back buffers, to set the front buffer location */
-    wait_for_vsync();
-    /* initialize a pointer to the pixel buffer, used by drawing functions */
-    pixel_buffer_start = (int) *pixel_ctrl_ptr;
-    clear_screen(); // pixel_buffer_start points to the pixel buffer
-    char moveValid = 0;
-    /* set back pixel buffer to Buffer 2 */
-    *(pixel_ctrl_ptr + 1) = (int) &Buffer2;
-    pixel_buffer_start = *(pixel_ctrl_ptr + 1); // we draw on the back buffer
-    clear_screen(); // pixel_buffer_start points to the pixel buffer
-    setupMouse();
-    setupTimer();
-    setupInterrupts();
-    while (1)
-    {   
-        //draw board
-		clear_screen();
-        drawBoard();
-        drawPieces();
-        if(startedMove == 1) {
-            drawSelection(startingRow, startingCol);
+  short int moveRow, moveCol;
+  char startedMove = 0;
+  char startingRow, startingCol;
+  char finalRow, finalCol;
+  char moveLegal = 0;
+  /* set front pixel buffer to Buffer 1 */
+  *(pixel_ctrl_ptr + 1) = (int) &Buffer1; // first store the address in the  back buffer
+  /* now, swap the front/back buffers, to set the front buffer location */
+  wait_for_vsync();
+  /* initialize a pointer to the pixel buffer, used by drawing functions */
+  pixel_buffer_start = (int) *pixel_ctrl_ptr;
+  clear_screen(); // pixel_buffer_start points to the pixel buffer
+  char moveValid = 0;
+  /* set back pixel buffer to Buffer 2 */
+  *(pixel_ctrl_ptr + 1) = (int) &Buffer2;
+  pixel_buffer_start = *(pixel_ctrl_ptr + 1); // we draw on the back buffer
+  clear_screen(); // pixel_buffer_start points to the pixel buffer
+  setupMouse();
+  setupTimer();
+  setupInterrupts();
+  while (1) {   
+      //draw board
+    clear_screen();
+    drawBoard();
+    drawPieces();
+    if(startedMove == 1) {
+        drawSelection(startingRow, startingCol);
+    }
+    drawMouse();
+    if(mousePressed) {
+        getMove(&moveRow, &moveCol); //get the move position
+        checkMove(moveRow,moveCol,colour, &moveValid, startedMove); //check if there is a piece in that postion if just starting move
+        if(moveValid == 1 && startedMove == 0) {
+            startingRow = moveRow;
+            startingCol = moveCol;
+            startedMove = 1;
+            genPotentialMoves(moveRow, moveCol);
         }
-        drawMouse();
-        if(mousePressed) {
-            getMove(&moveRow, &moveCol); //get the move position
-            checkMove(moveRow,moveCol,colour, &moveValid, startedMove); //check if there is a piece in that postion if just starting move
-            if(moveValid == 1 && startedMove == 0) {
-                startingRow = moveRow;
-                startingCol = moveCol;
+        else if(moveValid == 1 && startedMove == 1 && undoMove != 1) {
+            finalRow = moveRow;
+            finalCol = moveCol;
+            checkLegality(finalRow, finalCol, &moveLegal);
+            if(moveLegal) {
+              update_board(startingRow, startingCol, finalRow, finalCol);
+              colour = colour == WHITE? BLACK: WHITE;//change colour
+              startedMove = 0;
+            }
+            else {
                 startedMove = 1;
-
-                potential_moves(Board[moveRow][moveCol], moveRow, moveCol);
             }
-            else if(moveValid == 1 && startedMove == 1 && undoMove != 1) {
-                finalRow = moveRow;
-                finalCol = moveCol;
-                checkLegality(finalRow, finalCol, &moveLegal);
-
-
-                if(moveLegal) {
-                  update_board(startingRow, startingCol, finalRow, finalCol);
-                  colour = colour == WHITE? BLACK: WHITE;//change colour
-                  startedMove = 0;
-                }
-                else {
-                    startedMove = 1;
-                }
-            }
-            else if(undoMove == 1 && startedMove == 1) {
-                startedMove = 0;
-                undoMove = 0;
-            }
-            mousePressed = 0;
-            setupMouse();//enable interrupts from mouse
-        }//make sure to enable interrupts for mouse after
-        wait_for_vsync(); // swap front and back buffers on VGA vertical sync
-		pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer
-    	
+        }
+        else if(undoMove == 1 && startedMove == 1) {
+            startedMove = 0;
+            undoMove = 0;
+        }
+        mousePressed = 0;
+        printf("%d",check_endgame());
+        if(check_endgame() == true) {
+          gameOver = 1;
+          printf("Game is over");
+        }
+        if(gameOver == 1) {
+          resetGame();
+        }
+        setupMouse();//enable interrupts from mouse
+    }
+    //make sure to enable interrupts for mouse after
+    wait_for_vsync(); // swap front and back buffers on VGA vertical sync
+    pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer	
 	}
 }
 
@@ -1993,77 +2035,196 @@ void checkLegality(int finalRow, int finalCol, char* moveLegal) {
     return;
 }
 
+void resetGame(){
+  volatile unsigned int* LEDs = (int*) LED_BASE;
+  char newBoard[8][8] = {'R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R',
+  'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P',
+  'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
+  'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
+  'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
+  'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
+  'p', 'p', 'p', 'p', 'p', 'p', 'p', 'p', 
+  'r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'};
+  
+  for (int i = 0; i < 8; i++) {
+    for (int j = 0; j < 8; j++) {
+      Board[i][j] = newBoard[i][j];
+    }
+  }
+  //reset the times;
+  blackTime = (10*60)-1;
+  whiteTime = (10*60)-1;
+  if(colour == WHITE) {
+    //black won
+    *(LEDs) = (int)1;
+  }
+  else {
+    *(LEDs) = (int)2;
+  }
+
+}
+
 /***************************************************************************************************************************
- ******************************************************** MAIN ****************************************************************
+ ******************************************************** BACKEND(CHESS LEGALITY) ****************************************************************
  ***************************************************************************************************************************/
-bool check_endgame(){
-  int row;
-  int col;
-  for(int i =0; i<8; i++){
-    for (int j=0; j<8; j++){
-      if (colour == BLACK && Board[i][j] == 'k'){
-        row = i;
-        col = j; // found the king
-        potential_moves('k', row, col);
-        if (is_checked(row, col) && wk_moves == 0){ // white check mate
-          return true;
-        }
-        if (!is_checked(row, col) && wk_moves == 0){ // draw
-          return true;
+
+
+void genPotentialMoves(int row, int col) {
+  if (colour == WHITE){ // correcting the potential moves
+  for (int i =0; i<8; i++){
+    for (int j =0; j<8; j++){
+      if (Board[i][j] == 'k'){
+        king_row = i;
+        king_col = j;
+
+        potential_moves(Board[row][col], row, col);  // calculating potential moves
+        if (is_checked(i, j))
+          goto found_white_king;
+        goto out;
+      }
+    }
+  }
+  found_white_king:
+    find_checking_piece();
+    check_potential_moves('p');
+  }
+  else { // black turn
+    for (int i =0; i<8; i++){
+      for (int j =0; j<8; j++){
+        if (Board[i][j] == 'K'){
+          king_row = i;
+          king_col = j;
+
+          potential_moves(Board[row][col], row, col);  // calculating potential moves
+          if (is_checked(i, j))
+            goto found_king;
+          goto out;
         }
       }
-      else if (colour == WHITE && Board[i][j] == 'K'){
-        row = i;
-        col = j;
-        potential_moves('K', row, col);
-        if (is_checked(row, col) && bk_moves == 0){ // white check mate
-          return true;
+    }
+    found_king:
+    find_checking_piece();
+    check_potential_moves('P');  
+  }
+  out: 
+  return;
+}
+
+bool check_endgame(){
+  // if checked, check if the checking path can be blocked or if the checking piece can be captured
+  if (is_checked(king_row, king_col)){
+    find_checking_piece();
+    if (Board[king_row][king_col]== 'k'){ // whites turn
+        if (is_capturable(checking_piece_row, checking_piece_col))
+          return false; // checking piece can be captured 
+        int dy = king_row - checking_piece_row;
+        int dx = king_col - checking_piece_col;
+
+      if (dx != 0)
+        dx = (dx < 0) ? -1 : 1;
+      if (dy != 0)
+        dy = (dy < 0) ? -1 : 1;
+
+      for (int k=1; (k<8 && king_row+k*dy < 8 && king_row+k*dy >= 0 
+      && king_col+k*dx < 8 && king_col+k*dx >= 0); k++){
+        int posy = king_row+k*dy;
+        int posx = king_col+k*dx;
+        if (is_capturable(posy, posx))
+          return false; // checking path can be blocked
+      }
+      return true; // game over
+    
+    }
+    if (Board[king_row][king_col]== 'K'){ // blacks turn
+          if (is_capturable(checking_piece_row, checking_piece_col))
+            return false; // checking piece can be captured 
+          int dy = king_row - checking_piece_row;
+          int dx = king_col - checking_piece_col;
+
+        if (dx != 0)
+          dx = (dx < 0) ? -1 : 1;
+        if (dy != 0)
+          dy = (dy < 0) ? -1 : 1;
+
+        for (int k=1; (k<8 && (king_row+k*dy) < 8 && (king_row+k*dy) >= 0 
+        && (king_col+k*dx) < 8 && (king_col+k*dx) >= 0); k++){
+          int posy = king_row+k*dy;
+          int posx = king_col+k*dx;
+          if (is_capturable(posy, posx))
+            return false; // checking path can be blocked
         }
-        if (!is_checked(row, col) && bk_moves == 0){ // draw
-          return true;
+        return true; // game over
+      
+    }
+  }
+  return false; // if its not checked return false
+}
+
+bool is_capturable (int row, int col){
+  for(int i =0; i<8; i++){
+    for (int j=0; j<8; j++){
+      if (Board[i][j] > a && Board[i][j] != 'o'){
+        potential_moves(Board[i][j], i, j); // find all potential moves for that piece
+        for(int k =0; k<8; k++){
+          for (int l=0; l<8; l++){
+            if (potential_moves_board[k][l] == 'x' && row == k && col == l)
+              return true;
+          }
+        }
+      }
+      else if (Board[i][j] < Z){
+        potential_moves(Board[i][j], i, j); // find all potential moves for that piece
+        for(int k =0; k<8; k++){
+          for (int l=0; l<8; l++){
+            if (potential_moves_board[k][l] == 'x' && row == k && col == l)
+              return true;
+          }
         }
       }
     }
   }
-}
+  return false;
+} 
+
 /*********************************************************************************************
  **************************************** POTENTIAL MOVES *************************************
  *********************************************************************************************/
 
 void potential_moves(char piece, int row, int col) {
-
   for (int i = 0; i < 8; i++) {  // erasing old potential moves
     for (int j = 0; j < 8; j++) {
       if (potential_moves_board[i][j] == 'x') 
         potential_moves_board[i][j] = 'o';
     }
   }
+  if (Board[row][col] != piece)  // if the piece is not there, no potential moves
+    return;
   switch (piece) {
     /******************************************************** PAWNS ***********************************************************/
     case 'p':
-      if (Board[row - 1][col] == 'o' && !is_check_blocker(row, col)) {  // if there is no piece in front
+      if (Board[row - 1][col] == 'o' && !is_check_blocker(piece, row, col)) {  // if there is no piece in front
         potential_moves_board[row - 1][col] =
             'x';  // mark the potential moves for that piece with x
         if (row == 6 && Board[row-2][col] == 'o')
           potential_moves_board[row - 2][col] =
               'x';  // if its the first move, then two moves is available
       }
-      if (Board[row - 1][col - 1] < 90 && Board[row - 1][col - 1] != 'K')  
+      if (Board[row - 1][col - 1] < Z && Board[row - 1][col - 1] != 'K')  
         potential_moves_board[row - 1][col - 1] =
             'x';  // if there are pieces on the diagonals of the pawn they can
                   // be eliminated
-      if (Board[row - 1][col + 1] < 90 && Board[row - 1][col + 1] != 'K')
+      if (Board[row - 1][col + 1] < Z && Board[row - 1][col + 1] != 'K')
         potential_moves_board[row - 1][col + 1] = 'x';
 
       // En Passant
-      if (Board[row][col-1] < 90 && Board[row][col - 1] == 'P'){
+      if (Board[row][col-1] < Z && Board[row][col - 1] == 'P'){
         potential_moves_board[row - 1][col - 1] = 'x';
 
         En_passant_enable = true;
         En_passant[0] = row;
         En_passant[1] = col; // store location of En Passant pawn
       }
-      if (Board[row][col+1] < 90 && Board[row][col + 1] == 'P'){
+      if (Board[row][col+1] < Z && Board[row][col + 1] == 'P'){
         potential_moves_board[row - 1][col + 1] = 'x';
         
         En_passant_enable = true;
@@ -2074,159 +2235,61 @@ void potential_moves(char piece, int row, int col) {
       break;
 
     case 'P':
-      if (Board[row + 1][col] == 'o' && !is_check_blocker(row, col)) {  // if there is no piece in front
+      if (Board[row + 1][col] == 'o' && !is_check_blocker(piece, row, col)) {  // if there is no piece in front
         potential_moves_board[row + 1][col] = 'x';
         if (row == 1 && Board[row+2][col] == 'o')
-          potential_moves_board[row + 2][col] ='x';  // if its the first move, then two moves is available
+          potential_moves_board[row + 2][col] =
+              'x';  // if its the first move, then two moves is available
       }
-      if (Board[row + 1][col + 1] > 97)  
+      if (Board[row + 1][col + 1] > a && Board[row + 1][col + 1] != 'o')  
         potential_moves_board[row + 1][col + 1] =
             'x';  // if there are pieces on the diagonals of the pawn they can
                   // be eliminated
-      if (Board[row + 1][col - 1] > 97)
+      if (Board[row + 1][col - 1] > a && Board[row + 1][col - 1] != 'o')
         potential_moves_board[row + 1][col - 1] = 'x';
       break;
 
     /******************************************************** ROOKS ***********************************************************/
     case 'r':
-    // vertically up
-      for (int i = row + 1; (i < 8 && !is_check_blocker(row, col)); i++) {
-        if (Board[i][col] == 'o')
-          potential_moves_board[i][col] = 'x';
-        else if (Board[i][col] > 97)
-          break;  // Stop at own piece
-        else {
-          potential_moves_board[i][col] = 'x';  // Capture opponent's piece
-          break;                                // Stop after capturing
-        }
-      }
-
-      // Check vertically down
-      for (int i = row - 1; (i >= 0 && !is_check_blocker(row, col)); i--) {
-        if (Board[i][col] == 'o')
-          potential_moves_board[i][col] = 'x';
-        else if (Board[i][col] > 97)
-          break;  // Stop at own piece
-        else {
-          potential_moves_board[i][col] = 'x';  // Capture opponent's piece
-          break;                                // Stop after capturing
-        }
-      }
-
-      // Check horizontally right
-      for (int i = col + 1; (i < 8 && !is_check_blocker(row, col)); i++) {
-        if (Board[row][i] == 'o') {
-          potential_moves_board[row][i] = 'x';
-        } else if (Board[row][i] > 97) {
-          if (col == 0 && Board[row][i] == 'k' && !lw_rook_moved && !white_king_moved){
-            potential_moves_board[row][i-1] = 'x';
-            castling_enable = true;
-          }
-          break;  // Stop at own piece
-        } else {
-          potential_moves_board[row][i] = 'x';  // Capture opponent's piece
-          break;                                // Stop after capturing
-        }
-      }
-
-      // Check horizontally left
-      for (int i = col - 1; (i >= 0 && !is_check_blocker(row, col)); i--) {
-        if (Board[row][i] == 'o') {
-          potential_moves_board[row][i] = 'x';
-        } else if (Board[row][i] > 97) {
-          if (col == 7 && Board[row][i] == 'k' && !rw_rook_moved && !white_king_moved){
-            potential_moves_board[row][i+1] = 'x';
-            castling_enable = true;
-          }
-          break;  // Stop at own piece
-        } else {
-          potential_moves_board[row][i] = 'x';  // Capture opponent's piece
-          break;                                // Stop after capturing
-        }
-      }
-      break;
-
     case 'R':
-      // vertically up
-      for (int i = row + 1; (i < 8 && !is_check_blocker(row, col)); i++) {
-        if (Board[i][col] == 'o')
-          potential_moves_board[i][col] = 'x';
-        else if (Board[i][col] < 90)
-          break;  // Stop at own piece
-        else {
-          potential_moves_board[i][col] = 'x';  // Capture opponent's piece
-          break;                                // Stop after capturing
-        }
-      }
 
-      // Check vertically down
-      for (int i = row - 1; (i >= 0 && !is_check_blocker(row, col)); i--) {
-        if (Board[i][col] == 'o')
-          potential_moves_board[i][col] = 'x';
-        else if (Board[i][col] < 90)
-          break;  // Stop at own piece
-        else {
-          potential_moves_board[i][col] = 'x';  // Capture opponent's piece
-          break;                                // Stop after capturing
-        }
+    for (int i = -1; i<2; i++){
+      for (int j = -1; j<2; j++){
+        if (i == j || i == -j) // skip all diagonal directions
+          continue;
+        if (is_check_blocker(piece, row, col)){
+          piece_is_check_blocker(piece, -1, -1, row, col);
+          continue;
+        }        
+        potential_moves_indirection(piece, i, j, row, col);
       }
-
-      // Check horizontally right
-      for (int i = col + 1; (i < 8 && !is_check_blocker(row, col)); i++) {
-        if (Board[row][i] == 'o') {
-          potential_moves_board[row][i] = 'x';
-        } else if (Board[row][i] < 90) {
-          if (col == 0 && Board[row][i] == 'K' && !lb_rook_moved && !black_king_moved){
-            potential_moves_board[row][i-1] = 'x';
-            castling_enable = true;
-          }
-          break;  // Stop at own piece
-        } else {
-          potential_moves_board[row][i] = 'x';  // Capture opponent's piece
-          break;                                // Stop after capturing
-        }
-      }
-
-      // Check horizontally left
-      for (int i = col - 1; (i >= 0 && !is_check_blocker(row, col)); i--) {
-        if (Board[row][i] == 'o') {
-          potential_moves_board[row][i] = 'x';
-        } else if (Board[row][i] < 90) {
-          if (col == 7 && Board[row][i] == 'k' && !rb_rook_moved && !black_king_moved){
-            potential_moves_board[row][i+1] = 'x';
-            castling_enable = true;
-          }
-          break;  // Stop at own piece
-        } else {
-          potential_moves_board[row][i] = 'x';  // Capture opponent's piece
-          break;                                // Stop after capturing
-        }
-      }
-      break;
+    }
+    
+    break;
 
     /******************************************************** KNIGHTS ***********************************************************/
     case 'n':
       
-      for (int i=0; (i< 8 && !is_check_blocker(row, col)); i++){
+      for (int i=0; (i< 8 && !is_check_blocker(piece, row, col)); i++){
         int dx[8] = {-1, -2, -2, -1, 1, 2, 2, 1};
         int dy[8] = {-2, -1, 1, 2, 2, 1, -1, -2};
       
         if (!((row + dy[i]) >= 0 && (row + dy[i]) < 8 && (col + dx[i]) >= 0 && ((col + dx[i]) < 8) ))
           continue;
-        if (Board[row + dy[i]][col + dx[i]] == 'o' || Board[row + dy[i]][col + dx[i]] < 90)          
+        if (Board[row + dy[i]][col + dx[i]] == 'o' || Board[row + dy[i]][col + dx[i]] < Z)          
           potential_moves_board [row + dy[i]][col + dx[i]] = 'x';
       }
 
     break;
 
     case 'N':
-      for (int i=0; (i< 8 && !is_check_blocker(row, col)); i++){
+      for (int i=0; (i< 8 && !is_check_blocker(piece, row, col)); i++){
         int dx[8] = {-1, -2, -2, -1, 1, 2, 2, 1};
         int dy[8] = {-2, -1, 1, 2, 2, 1, -1, -2};
 
         if (!((row + dy[i]) >= 0 && (row + dy[i]) < 8 && (col + dx[i]) >= 0 && (col + dx[i]) < 8))
           continue;
-        if (Board[row + dy[i]][col + dx[i]] == 'o' || Board[row + dy[i]][col + dx[i]] > 97)
+        if (Board[row + dy[i]][col + dx[i]] == 'o' || Board[row + dy[i]][col + dx[i]] > a)
           potential_moves_board [row + dy[i]][col + dx[i]] = 'x';
       }
 
@@ -2234,315 +2297,34 @@ void potential_moves(char piece, int row, int col) {
 
     /******************************************************** BISHOPS ***********************************************************/
     case 'b':
-      // up right
-      for (int i = 1; row + i < 8 && col + i < 8 && !is_check_blocker(row, col); i++) {
-        if (Board[row + i][col + i] == 'o') {
-          potential_moves_board[row + i][col + i] = 'x';
-        } else if (Board[row + i][col + i] >= 'a' &&
-                   Board[row + i][col + i] <= 'z') {
-          break;  // Stop at own piece
-        } else {
-          potential_moves_board[row + i][col + i] =
-              'x';  // Capture opponent's piece
-          break;    // Stop after capturing
-        }
-      }
-
-      // up left
-      for (int i = 1; row + i < 8 && col - i >= 0 && !is_check_blocker(row, col); i++) {
-        if (Board[row + i][col - i] == 'o') {
-          potential_moves_board[row + i][col - i] = 'x';
-        } else if (Board[row + i][col - i] >= 'a' &&
-                   Board[row + i][col - i] <= 'z') {
-          break;  // Stop at own piece
-        } else {
-          potential_moves_board[row + i][col - i] =
-              'x';  // Capture opponent's piece
-          break;    // Stop after capturing
-        }
-      }
-
-      // Check diagonally down and right
-      for (int i = 1; row - i >= 0 && col + i < 8 && !is_check_blocker(row, col); i++) {
-        if (Board[row - i][col + i] == 'o') {
-          potential_moves_board[row - i][col + i] = 'x';
-        } else if (Board[row - i][col + i] >= 'a' &&
-                   Board[row - i][col + i] <= 'z') {
-          break;  // Stop at own piece
-        } else {
-          potential_moves_board[row - i][col + i] =
-              'x';  // Capture opponent's piece
-          break;    // Stop after capturing
-        }
-      }
-
-      // Check diagonally down and left
-      for (int i = 1; row - i >= 0 && col - i >= 0 && !is_check_blocker(row, col); i++) {
-        if (Board[row - i][col - i] == 'o') {
-          potential_moves_board[row - i][col - i] = 'x';
-        } else if (Board[row - i][col - i] >= 'a' &&
-                   Board[row - i][col - i] <= 'z') {
-          break;  // Stop at own piece
-        } else {
-          potential_moves_board[row - i][col - i] =
-              'x';  // Capture opponent's piece
-          break;    // Stop after capturing
-        }
-      }
-      break;
-
     case 'B':
-      for (int i = 1; row + i < 8 && col + i < 8 && !is_check_blocker(row, col); i++) {
-        if (Board[row + i][col + i] == 'o') {
-          potential_moves_board[row + i][col + i] = 'x';
-        } else if (Board[row + i][col + i] >= 'A' &&
-                   Board[row + i][col + i] <= 'Z') {
-          break;  // Stop at own piece
-        } else {
-          potential_moves_board[row + i][col + i] =
-              'x';  // Capture opponent's piece
-          break;    // Stop after capturing
-        }
+    for (int i = -1; i<2; i++){
+      for (int j = -1; j<2; j++){
+        if (i == 0 || j==0) // skip all horizontal and vertical 
+          continue;
+        if (is_check_blocker(piece, row, col)){
+          piece_is_check_blocker(piece, -1, -1, row, col);
+          continue;
+        }        
+        potential_moves_indirection(piece, i, j, row, col);
       }
-
-      // Check diagonally up and left
-      for (int i = 1; row + i < 8 && col - i >= 0 && !is_check_blocker(row, col); i++) {
-        if (Board[row + i][col - i] == 'o') {
-          potential_moves_board[row + i][col - i] = 'x';
-        } else if (Board[row + i][col - i] >= 'A' &&
-                   Board[row + i][col - i] <= 'Z') {
-          break;  // Stop at own piece
-        } else {
-          potential_moves_board[row + i][col - i] =
-              'x';  // Capture opponent's piece
-          break;    // Stop after capturing
-        }
-      }
-
-      // Check diagonally down and right
-      for (int i = 1; row - i >= 0 && col + i < 8 && !is_check_blocker(row, col); i++) {
-        if (Board[row - i][col + i] == 'o') {
-          potential_moves_board[row - i][col + i] = 'x';
-        } else if (Board[row - i][col + i] >= 'A' &&
-                   Board[row - i][col + i] <= 'Z') {
-          break;  // Stop at own piece
-        } else {
-          potential_moves_board[row - i][col + i] =
-              'x';  // Capture opponent's piece
-          break;    // Stop after capturing
-        }
-      }
-
-      // Check diagonally down and left
-      for (int i = 1; row - i >= 0 && col - i >= 0 && !is_check_blocker(row, col); i++) {
-        if (Board[row - i][col - i] == 'o')
-          potential_moves_board[row - i][col - i] = 'x';
-        else if (Board[row - i][col - i] >= 'A' &&
-                 Board[row - i][col - i] <= 'Z')
-          break;  // stop going in that direction once we reach our own piece
-        else {
-          potential_moves_board[row - i][col - i] =
-              'x';  // Capture opponent's piece
-          break;    // break after capturing one of their peices
-        }
-      } 
-
-
-      break;
+    }
+    break;
 
     /******************************************************** QUEENS **********************************************************/
     case 'q':
-
-    // HORIZONTAL AND VERTICAL 
-
-      for (int i = 1; row + i < 8 && col + i < 8 && !is_check_blocker(row, col); i++) { // UP
-        if (Board[row - i][col] == 'o') {
-          potential_moves_board[row - i][col] = 'x';
-        } else if (Board[row - i][col] > 97) {
-          break;  // Stop at own piece
-        } else {
-          potential_moves_board[row - i][col] = 'x';  
-          break;    // Stop after capturing
-        }
-      }
-
-      for (int i = 1; row + i < 8 && col + i < 8 && !is_check_blocker(row, col); i++) { // DOWN
-        if (Board[row + i][col] == 'o') {
-          potential_moves_board[row + i][col] = 'x';
-        } else if (Board[row + i][col] > 97) {
-          break;  // Stop at own piece
-        } else {
-          potential_moves_board[row + i][col] = 'x';  
-          break;    // Stop after capturing
-        }
-      }
-
-      for (int i = 1; row + i < 8 && col + i < 8 && !is_check_blocker(row, col); i++) { // RIGHT
-        if (Board[row][col + i] == 'o') {
-          potential_moves_board[row][col + i] = 'x';
-        } else if (Board[row - i][col] > 97) {
-          break;  // Stop at own piece
-        } else {
-          potential_moves_board[row][col + i] = 'x';  
-          break;    // Stop after capturing
-        }
-      }
-
-      for (int i = 1; row + i < 8 && col + i < 8 && !is_check_blocker(row, col); i++) { // LEFT
-        if (Board[row][col - i] == 'o') {
-          potential_moves_board[row][col - i] = 'x';
-        } else if (Board[row][col - i] > 97) {
-          break;  // Stop at own piece
-        } else {
-          potential_moves_board[row][col - i] = 'x';  
-          break;    // Stop after capturing
-        }
-      }
-
-      // DIAGONALS
-      // diagonal up right
-      for (int i = 1; row + i < 8 && col + i < 8 && !is_check_blocker(row, col); i++) {
-        if (Board[row + i][col + i] == 'o') {
-          potential_moves_board[row + i][col + i] = 'x';
-        } else if (Board[row + i][col + i] > 97) {
-          break;  // Stop at own piece
-        } else {
-          potential_moves_board[row + i][col + i] = 'x';  
-          break;    // Stop after capturing
-        }
-      }
-
-      // diagonal up left
-      for (int i = 1; row + i < 8 && col - i >= 0 && !is_check_blocker(row, col); i++) {
-        if (Board[row + i][col - i] == 'o') {
-          potential_moves_board[row + i][col - i] = 'x';
-        } else if (Board[row + i][col - i] > 97) {
-          break;  // Stop at own piece
-        } else {
-          potential_moves_board[row + i][col - i] = 'x';  
-          break;    // Stop after capturing
-        }
-      }
-
-      // diagonally down right
-      for (int i = 1; row - i >= 0 && col + i < 8 && !is_check_blocker(row, col); i++) {
-        if (Board[row - i][col + i] == 'o') {
-          potential_moves_board[row - i][col + i] = 'x';
-        } else if (Board[row - i][col + i] > 97) {
-          break;  // Stop at own piece
-        } else {
-          potential_moves_board[row - i][col + i] = 'x';  
-          break;    // Stop after capturing
-        }
-      }
-
-      // diagonally down  left
-      for (int i = 1; row - i >= 0 && col - i >= 0 && !is_check_blocker(row, col); i++) {
-        if (Board[row - i][col - i] == 'o') {
-          potential_moves_board[row - i][col - i] = 'x';
-        } else if (Board[row - i][col - i] > 97) {
-          break;  // Stop at own piece
-        } else {
-          potential_moves_board[row - i][col - i] = 'x';  
-          break;    // Stop after capturing
-        }
-      }
-    break;
     case 'Q':
-     // HORIZONTAL AND VERTICAL 
-      for (int i = 1; row + i < 8 && col + i < 8 && !is_check_blocker(row, col); i++) { // UP
-        if (Board[row - i][col] == 'o') {
-          potential_moves_board[row - i][col] = 'x';
-        } else if (Board[row - i][col] < 90) {
-          break;  // Stop at own piece
-        } else {
-          potential_moves_board[row - i][col] = 'x';  
-          break;    // Stop after capturing
-        }
+    for (int i = -1; i<2; i++){
+      for (int j = -1; j<2; j++){
+        if (i == 0 && j==0)
+          continue;
+        if (is_check_blocker(piece, row, col)){
+          piece_is_check_blocker(piece, i, j, row, col);
+          continue;
+        }        
+        potential_moves_indirection(piece, i, j, row, col);
       }
-
-      for (int i = 1; row + i < 8 && col + i < 8 && !is_check_blocker(row, col); i++) { // DOWN
-        if (Board[row + i][col] == 'o') {
-          potential_moves_board[row + i][col] = 'x';
-        } else if (Board[row + i][col] < 90) {
-          break;  // Stop at own piece
-        } else {
-          potential_moves_board[row + i][col] = 'x';  
-          break;    // Stop after capturing
-        }
-      }
-
-      for (int i = 1; row + i < 8 && col + i < 8 && !is_check_blocker(row, col); i++) { // RIGHT
-        if (Board[row][col + i] == 'o') {
-          potential_moves_board[row][col + i] = 'x';
-        } else if (Board[row - i][col] < 90) {
-          break;  // Stop at own piece
-        } else {
-          potential_moves_board[row][col + i] = 'x';  
-          break;    // Stop after capturing
-        }
-      }
-
-      for (int i = 1; row + i < 8 && col + i < 8 && !is_check_blocker(row, col); i++) { // LEFT
-        if (Board[row][col - i] == 'o') {
-          potential_moves_board[row][col - i] = 'x';
-        } else if (Board[row][col - i] < 90) {
-          break;  // Stop at own piece
-        } else {
-          potential_moves_board[row][col - i] = 'x';  
-          break;    // Stop after capturing
-        }
-      }
-
-      // DIAGONALS
-
-      // diagonal up right
-      for (int i = 1; row + i < 8 && col + i < 8 && !is_check_blocker(row, col); i++) {
-        if (Board[row + i][col + i] == 'o') {
-          potential_moves_board[row + i][col + i] = 'x';
-        } else if (Board[row + i][col + i] < 90) {
-          break;  // Stop at own piece
-        } else {
-          potential_moves_board[row + i][col + i] = 'x';  
-          break;    // Stop after capturing
-        }
-      }
-
-      // diagonal up left
-      for (int i = 1; row + i < 8 && col - i >= 0 && !is_check_blocker(row, col); i++) {
-        if (Board[row + i][col - i] == 'o') {
-          potential_moves_board[row + i][col - i] = 'x';
-        } else if (Board[row + i][col - i] < 90) {
-          break;  // Stop at own piece
-        } else {
-          potential_moves_board[row + i][col - i] = 'x';  
-          break;    // Stop after capturing
-        }
-      }
-
-      // diagonally down right
-      for (int i = 1; row - i >= 0 && col + i < 8 && !is_check_blocker(row, col); i++) {
-        if (Board[row - i][col + i] == 'o') {
-          potential_moves_board[row - i][col + i] = 'x';
-        } else if (Board[row - i][col + i] < 90) {
-          break;  // Stop at own piece
-        } else {
-          potential_moves_board[row - i][col + i] = 'x';  
-          break;    // Stop after capturing
-        }
-      }
-
-      // diagonally down  left
-      for (int i = 1; row - i >= 0 && col - i >= 0 && !is_check_blocker(row, col); i++) {
-        if (Board[row - i][col - i] == 'o') {
-          potential_moves_board[row - i][col - i] = 'x';
-        } else if (Board[row - i][col - i] < 90) {
-          break;  // Stop at own piece
-        } else {
-          potential_moves_board[row - i][col - i] = 'x';  
-          break;    // Stop after capturing
-        }
-      }
+    }
     break;
 
     /******************************************************** KINGS **********************************************************/
@@ -2550,7 +2332,7 @@ void potential_moves(char piece, int row, int col) {
       for (int i=-1; i< 2; i++){
         for (int j = -1; j<2; j++){
           if ((row+i) >= 0 || (row+i) < 8 || (col+j) >= 0 || (col+j) < 8){
-            if (Board[row+i][col+j] == 'o' || Board[row+i][col+j] < 90)
+            if (Board[row+i][col+j] == 'o' || Board[row+i][col+j] < Z)
               potential_moves_board[row+i][col+j] = 'x';
           }
         }
@@ -2561,7 +2343,7 @@ void potential_moves(char piece, int row, int col) {
       for (int i=-1; i< 2; i++){
         for (int j = -1; j<2; j++){
           if ((row+i) >= 0 || (row+i) < 8 || (col+j) >= 0 || (col+j) < 8){
-            if (Board[row+i][col+j] == 'o' || Board[row+i][col+j] > 97)
+            if (Board[row+i][col+j] == 'o' || Board[row+i][col+j] > a)
               potential_moves_board[row+i][col+j] = 'x';
           }
         }
@@ -2571,69 +2353,258 @@ void potential_moves(char piece, int row, int col) {
   }
 }
 
-// void potential_check_blocker ()
 
-bool is_check_blocker (int row, int col){
 
-  for (int i = 0; i <8; i++){
-    for (int j = 0; j<8; j++){
-      if (Board[i][j] == 'k' && Board[row][col] > 97){
-        // found the king
-        int dy = row - i; // distance away from the piece
-        int dx = col - j;
+void piece_is_check_blocker(char piece, int dy, int dx, int row, int col){
+  if (is_check_blocker(piece, row+dy, col+dx) || is_check_blocker(piece, row-dy, col-dx)){
+    // the checking piece is in this direction 
+    for (int k = 1; row + (k*dy) < 8 && row + (k*dy) >= 0 && col + (k*dx) < 8 && col + (k*dx) >=0; k++) {
+      int posy = row + (k*dy);
+      int posx = col + (k*dx);
 
-        if (dx == 0 || dy == 0 || dx == dy || dx == -dy){
-          dy = (dy < 0) ? -1 : 1;
-          dx = (dx < 0) ? -1 : 1;
-          for (int k = 0; (k < 8 && (row + k*dy)<8 && (row + k*dy)>= 0 
-          && (col + k*dx)<8 && (col + k*dx) >= 0); k++){
-            int posy = row + k*dy;
-            int posx = col + k*dx;
-            if ((dx == dy || dx == -dy) && 
-            (Board[posy][posx] == 'B' || Board[posy][posx] == 'Q')){ // bishop or queen
-              return true;
-            }
-            else if ((dx == 0 || dy == 0) && 
-            (Board[posy][posx] == 'R' || Board[posy][posx] == 'Q')){
-              return true;
-            }
-            
-
-          }
-          return false;
-        } 
-        // not in the path to block a check
-        return false;
+      if (Board[posy][posx] == 'o') {
+        potential_moves_board[posy][posx] = 'x';
+      } else if (Board[posy][posx] > a && Board[posy][posx] != 'o') {
+        break;  // Stop at own piece
+      } else {
+        potential_moves_board[posy][posx] = 'x';  
+        break;    // Stop after capturing
       }
-      else if (Board[i][j] == 'K' && Board[row][col] < 90){
-        // found the king
-        int dy = i - row; // distance away from the piece
-        int dx = j - col;
+    }
 
-        if (dx == 0 || dy == 0 || dx == dy || dx == -dy){
-          dy = (dy < 0) ? -1 : 1;
-          dx = (dx < 0) ? -1 : 1;
-          for (int k = 1; (k < 8 && (row + k*dy)<8 && (row + k*dy)>= 0 
-          && (col + k*dx)<8 && (col + k*dx) >= 0); k++){
-            int posy = row + k*dy;
-            int posx = col + k*dx;
-            if ((dx == dy || dx == -dy) && 
-            (Board[posy][posx] == 'b' || Board[posy][posx] == 'q')){ // bishop or queen
-              return true;
+    for (int k = 1; row - (k*dy) < 8 && row - (k*dy) >= 0 && col - (k*dx) < 8 && col - (k*dx) >=0; k++) {
+      int posy = row - (k*dy);
+      int posx = col - (k*dx);
+
+      if (Board[posy][posx] == 'o') {
+        potential_moves_board[posy][posx] = 'x';
+      } else if (Board[posy][posx] > a && Board[posy][posx] != 'o') {
+        break;  // Stop at own piece
+      } else {
+        potential_moves_board[posy][posx] = 'x';  
+        break;    // Stop after capturing
+      }
+      
+    }
+  }
+}
+
+void potential_moves_indirection(char piece, int dy, int dx, int row, int col){
+  if (piece > a){
+    for (int k = 1; row + (k*dy) < 8 && row + (k*dy) >= 0 && col + (k*dx) < 8 && col + (k*dx) >=0; k++) { 
+      int posy = row + (k*dy);
+      int posx = col + (k*dx);
+
+      if (Board[posy][posx] == 'o') {
+        potential_moves_board[posy][posx] = 'x';
+      } else if (Board[posy][posx] > a) {
+        return;  // Stop at own piece
+      } else {
+        potential_moves_board[posy][posx] = 'x';  
+        return;    // Stop after capturing
+      }
+      
+    }
+  }
+  else if (piece < Z){
+    for (int k = 1; row + (k*dy) < 8 && row + (k*dy) >= 0 && col + (k*dx) < 8 && col + (k*dx) >=0; k++) { 
+      int posy = row + (k*dy);
+      int posx = col + (k*dx);
+
+      if (Board[posy][posx] == 'o') {
+        potential_moves_board[posy][posx] = 'x';
+      } else if (Board[posy][posx] < Z) {
+        return;  // Stop at own piece
+      } else {
+        potential_moves_board[posy][posx] = 'x';  
+        return;    // Stop after capturing
+      }
+      
+    }
+  }
+}
+
+
+void check_potential_moves(char piece) { // call this only if the player is checked
+      for (int i = 0; i < 8; i++) {
+        for (int j = 0; j < 8; j++) {
+            if (potential_moves_board[i][j] == 'x'){
+              if (is_check_blocker(piece, i, j) || Board[i][j] == checking_piece)
+                continue;
+              potential_moves_board[i][j] = 'o'; 
             }
-            else if ((dx == 0 || dy == 0) && 
-            (Board[posy][posx] == 'r' || Board[posy][posx] == 'q')){
-              return true;
-            }
-          }
-          return false;
         }
-        return false;
+    }
+}
+
+bool is_check_blocker (char piece, int row, int col){
+  if (Board[king_row][king_col] == 'k' && piece > a){
+    // found the king
+    int dy = row - king_row; // distance away from the piece
+    int dx = col - king_col;
+
+    if (dx == 0 || dy == 0 || dx == dy || dx == -dy){
+      if (dx != 0)
+        dx = (dx < 0) ? -1 : 1;
+      if (dy != 0)
+        dy = (dy < 0) ? -1 : 1;
+
+      for (int k = 0; (k < 8 && (king_row + k*dy)<8 && (king_row + k*dy)>= 0 
+      && (king_col + k*dx)<8 && (king_col + k*dx) >= 0); k++){
+        int posy = king_row + k*dy;
+        int posx = king_col + k*dx;
+        if(posy != row && posx != col && Board[posy][posx] > a && Board[posy][posx] != 'o')
+          return false; // another piece already blocks it
+      }
+
+      for (int k = 0; (k < 8 && (row + k*dy)<8 && (row + k*dy)>= 0 && (col + k*dx)<8 && (col + k*dx) >= 0); k++){
+        int posy = row + k*dy;
+        int posx = col + k*dx;
+        if ((dx == dy || dx == -dy) && 
+        (Board[posy][posx] == 'B' || Board[posy][posx] == 'Q')){ // bishop or queen
+          return true;
+        }
+        else if ((dx == 0 || dy == 0) && 
+        (Board[posy][posx] == 'R' || Board[posy][posx] == 'Q')){
+          return true;
+        }
+        
+
+      }
+      return false;
+    } 
+    // not in the path to block a check
+    return false;
+  }
+  else if (Board[king_row][king_col] == 'K' && piece < Z){
+    // found the king
+    int dy = row - king_row; // distance away from the piece
+    int dx = col - king_col;
+
+    for (int k = 1; (k < 8 && (king_row + k*dy)<8 && (king_row + k*dy)>= 0 
+      && (king_col + k*dx)<8 && (king_col + k*dx) >= 0); k++){
+        int posy = king_row + k*dy;
+        int posx = king_col + k*dx;
+        if(posy != row && posx != col && Board[posy][posx] < Z)
+          return false; // another piece already blocks it
+      }
+
+    if (dx == 0 || dy == 0 || dx == dy || dx == -dy){
+      dy = (dy < 0) ? -1 : 1;
+      dx = (dx < 0) ? -1 : 1;
+      for (int k = 1; (k < 8 && (row + k*dy)<8 && (row + k*dy)>= 0 
+      && (col + k*dx)<8 && (col + k*dx) >= 0); k++){
+        int posy = row + k*dy;
+        int posx = col + k*dx;
+        if ((dx == dy || dx == -dy) && 
+        (Board[posy][posx] == 'b' || Board[posy][posx] == 'q')){ // bishop or queen
+          return true;
+        }
+        else if ((dx == 0 || dy == 0) && 
+        (Board[posy][posx] == 'r' || Board[posy][posx] == 'q')){
+          return true;
+        }
+      }
+      return false;
+    }
+    return false;
+  }  
+}
+
+void find_checking_piece (){
+  int dx[8] = {-1, -2, -2, -1, 1, 2, 2, 1};
+  int dy[8] = {-2, -1, 1, 2, 2, 1, -1, -2};
+
+  if(Board[king_row][king_col] == 'k'){ // whites turn
+    for (int i = 0; i<8; i++){
+      if (Board[dx[i]][dy[i]] == 'N'){
+        checking_piece = 'N';
+        return;
+      }
+    }
+    for (int i=-1; i<2; i++){
+      for (int j=-1; j<2; j++){
+        for (int k = 1; (k < 8 && (king_row + k*i)<8 && (king_row + k*j)>= 0 
+        && (king_col + k*i)<8 && (king_col + k*j) >= 0); k++){
+          int posy = king_row + k*i;
+          int posx = king_col + k*j;
+          if (Board[posy][posy] > a && Board[posy][posy] != 'o')
+            break; // stop progressing when reaching our piece
+          if (dx == i || dx == -j){
+            if (Board[posy][posx] == 'B'){
+              checking_piece = 'B'; 
+              checking_piece_row = posy;
+              checking_piece_col = posx;
+              return; }
+            if (Board[posy][posx] == 'Q'){ // bishop or queen
+              checking_piece = 'Q'; 
+              checking_piece_row = posy;
+              checking_piece_col = posx;
+              return; }
+          }
+          else if (dx == 0 || dy == 0){
+            if (Board[posy][posx] == 'R'){
+              checking_piece = 'R'; 
+              checking_piece_row = posy;
+              checking_piece_col = posx;
+              return; } 
+            if (Board[posy][posx] == 'Q'){
+              checking_piece = 'Q'; 
+              checking_piece_row = posy;
+              checking_piece_col = posx;
+              return; }         
+          }
+        }
       }
     }
   }
-  return false;
+
+  if(Board[king_row][king_col] == 'K'){ // whites turn
+    for (int i = 0; i<8; i++){
+      if (Board[dx[i]][dy[i]] == 'n'){
+        checking_piece = 'n';
+        return;
+      }
+    }
+    for (int i=-1; i<2; i++){
+      for (int j=-1; j<2; j++){
+        for (int k = 1; (k < 8 && (king_row + k*i)<8 && (king_row + k*i)>= 0 
+        && (king_col + k*j)<8 && (king_col + k*j) >= 0); k++){
+          int posy = king_row + k*i;
+          int posx = king_col + k*j;
+          if (Board[posy][posx] < Z)
+            break; // stop progressing when reaching our piece
+          if (i == j || i == -j){
+            if (Board[posy][posx] == 'b'){
+              checking_piece = 'b'; 
+              checking_piece_row = posy;
+              checking_piece_col = posx;
+              return; }
+            if (Board[posy][posx] == 'q'){ // bishop or queen
+              checking_piece = 'q';
+              checking_piece_row = posy;
+              checking_piece_col = posx;
+              return; }
+          }
+          else if (i == 0 || j == 0){
+            if (Board[posy][posx] == 'r'){
+              checking_piece = 'r'; 
+              checking_piece_row = posy;
+              checking_piece_col = posx;
+              return; }
+            if (Board[posy][posx] == 'q'){
+              checking_piece = 'q'; 
+              checking_piece_row = posy;
+              checking_piece_col = posx;
+              return; }       
+          }
+        }
+      }
+    }
+
+  }
 }
+
 
 bool is_checked(int row, int col){
   for (int i=-1; i<2 ; i++){
@@ -2645,8 +2616,8 @@ bool is_checked(int row, int col){
         if (posy < 0 || posy > 7 || posx < 0 || posx > 7)
           break; // stop proceeding if we are out of boands
 
-        if (Board[row][col] > 97){ // white piece
-          if (Board[posy][posx] > 97) // blocked by our piece
+        if (Board[row][col] > a){ // white piece
+          if (Board[posy][posx] > a && Board[posy][posx] != 'o') // blocked by our piece
             break;
 
           if (abs(i) == 1 && abs(j) == 1 && 
@@ -2665,7 +2636,7 @@ bool is_checked(int row, int col){
             return true;
         } 
         else { // black piece
-          if (Board[posy][posx] < 90) // blocked by our piece
+          if (Board[posy][posx] < Z && Board[posy][posy] != 'o') // blocked by our piece
             break;
 
           if (abs(i) == 1 && abs(j) == 1 && 
@@ -2690,12 +2661,9 @@ bool is_checked(int row, int col){
   return false;
 }
 
-void update_board(int startingRow, int startingCol, int finalRow, int finalCol){
-  int row = finalRow;
-  int col = finalCol;
-  int posx = startingCol;
-  int posy = startingRow;
-   /********************** EN PASSANT *********************/
+void update_board(int posy, int posx, int row, int col) {
+  printf("updating board \n");
+  /********************** EN PASSANT *********************/
   if (En_passant_enable && row == En_passant[0] && col == En_passant[1])
     Board[posy][posx -1] = 'o'; // elimintate piece
   
