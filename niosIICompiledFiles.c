@@ -2542,7 +2542,7 @@ void find_checking_piece (){
               checking_piece_col = posx;
               return; }
           }
-          else if (dx == 0 || dy == 0){
+          else if (i== 0 || j == 0){
             if (Board[posy][posx] == 'R'){
               checking_piece = 'R'; 
               checking_piece_row = posy;
