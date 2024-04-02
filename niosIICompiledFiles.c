@@ -2070,44 +2070,24 @@ void resetGame(){
 
 
 void genPotentialMoves(int row, int col) {
-  if (colour == WHITE){ // correcting the potential moves
-  for (int i =0; i<8; i++){
-    for (int j =0; j<8; j++){
-      if (Board[i][j] == 'k'){
+  int king_found = 0;
+  for (int i = 0; i < 8 && !king_found; i++) {
+    for (int j = 0; j < 8 && !king_found; j++) {
+      if ((colour == WHITE && Board[i][j] == 'k') || (colour == BLACK && Board[i][j] == 'K')) {
         king_row = i;
         king_col = j;
-
-        potential_moves(Board[row][col], row, col);  // calculating potential moves
-        if (is_checked(i, j))
-          goto found_white_king;
-        goto out;
+        king_found = 1; // Set the flag to indicate king is found
       }
     }
   }
-  found_white_king:
-    find_checking_piece();
-    check_potential_moves('p');
-  }
-  else { // black turn
-    for (int i =0; i<8; i++){
-      for (int j =0; j<8; j++){
-        if (Board[i][j] == 'K'){
-          king_row = i;
-          king_col = j;
 
-          potential_moves(Board[row][col], row, col);  // calculating potential moves
-          if (is_checked(i, j))
-            goto found_king;
-          goto out;
-        }
-      }
+  if (king_found) {
+    potential_moves(Board[king_row][king_col], king_row, king_col); // calculating potential moves
+    if (is_checked(king_row, king_col)) {
+      find_checking_piece();
+      check_potential_moves((colour == WHITE) ? 'p' : 'P');
     }
-    found_king:
-    find_checking_piece();
-    check_potential_moves('P');  
   }
-  out: 
-  return;
 }
 
 bool check_endgame(){
