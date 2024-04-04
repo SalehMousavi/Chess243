@@ -2086,6 +2086,8 @@ void genPotentialMoves(int row, int col) {
         king_col = j;
         king_found = 1; // Set the flag to indicate king is found
         potential_moves(Board[row][col], row, col);
+        print_potential_board();
+        print_stored_moves();
       }
     }
   }
