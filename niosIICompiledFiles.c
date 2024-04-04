@@ -13,6 +13,7 @@
 ***************************************************************************************************************************/
 
 void main(void);
+void printPotentialMoves(void);
 void interrupt_handler(void); 
 void setupMouse();
 void setupInterrupts(); 
@@ -178,6 +179,7 @@ volatile unsigned int undoMove = 0;
 volatile unsigned int blackTime = (10*60)-1;
 volatile unsigned int whiteTime = (10*60)-1;
 volatile char colour = WHITE; 
+bool checked = false;
 
 char potential_moves_board[8][8] = {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
                                     'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
@@ -1703,11 +1705,14 @@ void main(void)
             startingCol = moveCol;
             startedMove = 1;
             genPotentialMoves(moveRow, moveCol);
+            printPotentialMoves();
         }
         else if(moveValid == 1 && startedMove == 1 && undoMove != 1) {
             finalRow = moveRow;
             finalCol = moveCol;
+            printf("Moving to row:%d, col:%d", finalRow,finalCol);
             checkLegality(finalRow, finalCol, &moveLegal);
+            printf("Move Legal: %d\n", moveLegal);
             if(moveLegal) {
               update_board(startingRow, startingCol, finalRow, finalCol);
               colour = colour == WHITE? BLACK: WHITE;//change colour
@@ -1722,7 +1727,6 @@ void main(void)
             undoMove = 0;
         }
         mousePressed = 0;
-        printf("%d",check_endgame());
         if(check_endgame() == true) {
           gameOver = 1;
           printf("Game is over");
@@ -2070,22 +2074,40 @@ void resetGame(){
 
 
 void genPotentialMoves(int row, int col) {
-  int king_found = 0;
-  for (int i = 0; i < 8 && !king_found; i++) {
-    for (int j = 0; j < 8 && !king_found; j++) {
-      if ((colour == WHITE && Board[i][j] == 'k') || (colour == BLACK && Board[i][j] == 'K')) {
+  bool king_found = false;
+  
+  for (int i =0; i<8 && !king_found; i++){
+    for (int j =0; j<8 && !king_found; j++){
+      if (colour == BLACK && Board[i][j] == 'k'){
         king_row = i;
         king_col = j;
-        king_found = 1; // Set the flag to indicate king is found
-      }
-    }
-  }
+        king_found = true;
 
-  if (king_found) {
-    potential_moves(Board[king_row][king_col], king_row, king_col); // calculating potential moves
-    if (is_checked(king_row, king_col)) {
-      find_checking_piece();
-      check_potential_moves((colour == WHITE) ? 'p' : 'P');
+        potential_moves(Board[row][col], row, col);
+        printPotentialMoves();
+
+        if (is_checked(i,j)){
+          checked = true;
+          printf("White king is checked\n");
+          find_checking_piece();
+          check_potential_moves('p');
+        }
+      }
+      else if (colour == WHITE && Board[i][j] == 'K'){
+        king_row = i;
+        king_col = j;
+        king_found = true;
+
+        potential_moves(Board[row][col], row, col);
+       printPotentialMoves();
+
+        if (is_checked(i,j)){
+          checked = true;
+          printf("Black king is checked\n");
+          find_checking_piece();
+          check_potential_moves('P');
+        }
+      }
     }
   }
 }
@@ -2118,8 +2140,8 @@ bool check_endgame(){
     if (Board[king_row][king_col]== 'K'){ // blacks turn
           if (is_capturable(checking_piece_row, checking_piece_col))
             return false; // checking piece can be captured 
-          int dy = king_row - checking_piece_row;
-          int dx = king_col - checking_piece_col;
+          int dy = checking_piece_row - king_row;
+          int dx = checking_piece_col - king_col;
 
         if (dx != 0)
           dx = (dx < 0) ? -1 : 1;
@@ -2140,19 +2162,23 @@ bool check_endgame(){
   return false; // if its not checked return false
 }
 
-bool is_capturable (int row, int col){
+bool is_capturable (int row, int col){ // give location of the checking piece
   for(int i =0; i<8; i++){
     for (int j=0; j<8; j++){
-      if (Board[i][j] > a && Board[i][j] != 'o'){
+      if (Board[row][col] < Z && Board[i][j] > a && Board[i][j] != 'o'){ 
+        // piece captured is black and looking for white pieces
+
         potential_moves(Board[i][j], i, j); // find all potential moves for that piece
         for(int k =0; k<8; k++){
-          for (int l=0; l<8; l++){
+          for (int l=0; l<8; l++){ // search through the potential moves
             if (potential_moves_board[k][l] == 'x' && row == k && col == l)
               return true;
           }
         }
       }
-      else if (Board[i][j] < Z){
+      else if (Board[row][col] > a && Board[i][j] < Z){
+        // piece captured is white and looking for black pieces
+        
         potential_moves(Board[i][j], i, j); // find all potential moves for that piece
         for(int k =0; k<8; k++){
           for (int l=0; l<8; l++){
@@ -2179,6 +2205,7 @@ void potential_moves(char piece, int row, int col) {
   }
   if (Board[row][col] != piece)  // if the piece is not there, no potential moves
     return;
+
   switch (piece) {
     /******************************************************** PAWNS ***********************************************************/
     case 'p':
@@ -2418,6 +2445,7 @@ void check_potential_moves(char piece) { // call this only if the player is chec
 }
 
 bool is_check_blocker (char piece, int row, int col){
+  
   if (Board[king_row][king_col] == 'k' && piece > a){
     // found the king
     int dy = row - king_row; // distance away from the piece
@@ -2437,7 +2465,8 @@ bool is_check_blocker (char piece, int row, int col){
           return false; // another piece already blocks it
       }
 
-      for (int k = 0; (k < 8 && (row + k*dy)<8 && (row + k*dy)>= 0 && (col + k*dx)<8 && (col + k*dx) >= 0); k++){
+      for (int k = 0; (k < 8 && (row + k*dy)<8 && (row + k*dy)>= 0 
+      && (col + k*dx)<8 && (col + k*dx) >= 0); k++){
         int posy = row + k*dy;
         int posx = col + k*dx;
         if ((dx == dy || dx == -dy) && 
@@ -2522,7 +2551,7 @@ void find_checking_piece (){
               checking_piece_col = posx;
               return; }
           }
-          else if (i== 0 || j == 0){
+          else if (i == 0 || j == 0){
             if (Board[posy][posx] == 'R'){
               checking_piece = 'R'; 
               checking_piece_row = posy;
@@ -2642,8 +2671,7 @@ bool is_checked(int row, int col){
 }
 
 void update_board(int posy, int posx, int row, int col) {
-  printf("updating board \n");
-  /********************** EN PASSANT *********************/
+   /********************** EN PASSANT *********************/
   if (En_passant_enable && row == En_passant[0] && col == En_passant[1])
     Board[posy][posx -1] = 'o'; // elimintate piece
   
@@ -2678,4 +2706,13 @@ void update_board(int posy, int posx, int row, int col) {
   
   Board[row][col] = Board[posy][posx];// move piece to the destination
   Board[posy][posx] = 'o';  // set the orignal position to empty - 'o'
+}
+
+void printPotentialMoves() {
+  for (int i = 0; i < 8; i++) {
+    for (int j = 0; j < 8; j++) {
+      printf("%c ",potential_moves_board[i][j]);
+    }
+    printf("\n");
+  }
 }
