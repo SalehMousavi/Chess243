@@ -165,7 +165,7 @@ do { dest = __builtin_rdctl(5); } while (0)
 #define BLACK 0
 #define WHITE 1
 #define YELLOW 0xFFA0
-#define BLUE 0xF0F0
+#define BLUE 0x6D9D
 volatile int gameOver = 0;
 volatile int pixel_buffer_start; // global variable
 short int Buffer1[240][512]; // 240 rows, 512 (320 + padding) columns
@@ -1656,21 +1656,21 @@ void plot_pixel(int x, int y, short int line_color)
 	}     
 }
 
-void drawSelection(int Row, int Col, char boxColour) {
-    //draw top bars
-    int x = 39 + Col*WIDTH;
-    int y = Row*HEIGHT;
-    //draw top bars
-    for (int i = 0; i < WIDTH; i++) {
-        plot_pixel(x+i, y, YELLOW);
-        plot_pixel(x+i, y+HEIGHT-1, boxColour);
-    }
-    //draw side bars
-    for (int i = 0; i < HEIGHT; i++) {
-        plot_pixel(x, y+i, YELLOW);
-        plot_pixel(x+WIDTH-1, y+i, boxColour);
-    }
-    return;
+void drawSelection(int Row, int Col, short int boxColour) {
+  //draw top bars
+  int x = 39 + Col*WIDTH;
+  int y = Row*HEIGHT;
+  //draw top bars
+  for (int i = 0; i < WIDTH; i++) {
+      plot_pixel(x+i, y, boxColour);
+      plot_pixel(x+i, y+HEIGHT-1, boxColour);
+  }
+  //draw side bars
+  for (int i = 0; i < HEIGHT; i++) {
+      plot_pixel(x, y+i, boxColour);
+      plot_pixel(x+WIDTH-1, y+i, boxColour);
+  }
+  return;
 }
 
 void main(void)
@@ -1701,14 +1701,14 @@ void main(void)
     drawBoard();
     drawPieces();
     if(startedMove == 1) {
-        drawSelection(startingRow, startingCol, YELLOW);
-            for(int i = 0; i < 8; i++) {
-                for(int j = 0; j < 8; j++) {
-                    if(stored_moves[i][j] == 'x') {
-                        drawSelection(i, j, BLUE);
-                    }
-                }
-            }
+      drawSelection(startingRow, startingCol, YELLOW);
+      for(int i = 0; i < 8; i++) {
+        for(int j = 0; j < 8; j++) {
+          if(stored_moves[i][j] == 'x') {
+            drawSelection(i, j, BLUE);
+          }
+        }
+      }
     }
     drawMouse();
     if(mousePressed) {
@@ -1727,10 +1727,15 @@ void main(void)
             if(moveLegal) {
               update_board(startingRow, startingCol, finalRow, finalCol);
               colour = colour == WHITE? BLACK: WHITE;//change colour
+              printf("%d",check_endgame());
+              if(check_endgame() == true) {
+                gameOver = 1;
+                printf("Game is over");
+              }
               startedMove = 0;
             }
             else {
-                startedMove = 1;
+              startedMove = 1;
             }
         }
         else if(undoMove == 1 && startedMove == 1) {
@@ -1738,11 +1743,7 @@ void main(void)
             undoMove = 0;
         }
         mousePressed = 0;
-        printf("%d",check_endgame());
-        if(check_endgame() == true) {
-          gameOver = 1;
-          printf("Game is over");
-        }
+        
         if(gameOver == 1) {
           resetGame();
         }
