@@ -2135,7 +2135,6 @@ void genPotentialMoves(int row, int col) {
       // printf("Game over, %c wins\n", turn); 
       gameOver = 1;
   
-  update_board();
 }
 
 bool check_endgame(){
