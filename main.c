@@ -32,7 +32,14 @@ void main(void)
         drawBoard();
         drawPieces();
         if(startedMove == 1) {
-            drawSelection(startingRow, startingCol);
+            drawSelection(startingRow, startingCol, YELLOW);
+            for(int i = 0; i < 8; i++) {
+                for(int j = 0; j < 8; j++) {
+                    if(stored_moves[i][j] == 'x') {
+                        drawSelection(i, j, BLUE);
+                    }
+                }
+        }
         }
         drawMouse();
         if(mousePressed) {
