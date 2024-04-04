@@ -2091,14 +2091,6 @@ void genPotentialMoves(int row, int col) {
       }
     }
   }
-
-  if (king_found) {
-    potential_moves(Board[king_row][king_col], king_row, king_col); // calculating potential moves
-    if (is_checked(king_row, king_col)) {
-      find_checking_piece();
-      check_potential_moves((colour == WHITE) ? 'p' : 'P');
-    }
-  }
   for (int i = 0; i < 8; i++) {
     for (int j = 0; j < 8; j++) {
         stored_moves[i][j] = potential_moves_board[i][j];
@@ -2106,6 +2098,14 @@ void genPotentialMoves(int row, int col) {
     }
   }
   print_stored_moves();
+  if (king_found == 1) {
+    potential_moves(Board[king_row][king_col], king_row, king_col); // calculating potential moves
+    if (is_checked(king_row, king_col)) {
+      find_checking_piece();
+      check_potential_moves((colour == WHITE) ? 'p' : 'P');
+    }
+  }
+  
 }
 
 bool check_endgame(){
