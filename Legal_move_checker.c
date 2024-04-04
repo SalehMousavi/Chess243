@@ -1,4 +1,4 @@
-#include <math.h>
+\#include <math.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -49,10 +49,10 @@ bool is_capturable (int row, int col);
  ******************************************************** GLOBALS *************************************************************
  ***************************************************************************************************************************/
 char Board[8][8] = {'R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R', 
-                    'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 
+                    'P', 'P', 'P', 'P', 'P', 'o', 'o', 'P', 
+                    'o', 'o', 'o', 'o', 'o', 'o', 'P', 'o', 
+                    'o', 'o', 'o', 'o', 'o', 'o', 'o', 'q', 
                     'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 
-                    'o', 'b', 'o', 'o', 'o', 'o', 'o', 'o', 
-                    'o', 'o', 'o', 'P', 'o', 'o', 'o', 'o', 
                     'o', 'o', 'p', 'o', 'o', 'o', 'o', 'o', 
                     'p', 'p', 'p', 'p', 'p', 'p', 'p', 'p', 
                     'q', 'n', 'b', 'q', 'k', 'b', 'n', 'r'};
@@ -66,6 +66,8 @@ char potential_moves_board[8][8] = {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
                                     'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
                                     'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
                                     'o'};  // this marks the potential moves
+
+char stored_moves [8][8];
 
 char move[4] = {'P', 'a',
                 '3'};  // 5 characters (piece, x1, y1, x2, y2) + null terminator
@@ -104,6 +106,8 @@ int main() {
   print_board();
   printf("Enter piece: ");
   scanf("%3s", move);
+  bool king_found = false;
+  bool checked = false;
 
   while (strcmp(move, termination) != 0) {
     check_turn();
@@ -118,59 +122,57 @@ int main() {
 
     int col = move[1] - 'a';
     int row = move[2] - '1';
-    
-    if (turn == 'b'){ // correcting the potential moves
-    for (int i =0; i<8; i++){
-      for (int j =0; j<8; j++){
-        if (Board[i][j] == 'k'){
+
+    king_found = false;
+
+    for (int i =0; i<8 && !king_found; i++){
+      for (int j =0; j<8 && !king_found; j++){
+        if (turn == 'b' && Board[i][j] == 'k'){
           king_row = i;
           king_col = j;
+          king_found = true;
 
-          potential_moves(move[0], row, col);  // calculating potential moves
+          potential_moves(move[0], row, col);
           print_potential_board();
 
-          if (is_checked(i, j))
-            goto found_white_king;
-          goto out;
+          if (is_checked(i,j)){
+            checked = true;
+            printf("White king is checked\n");
+            find_checking_piece();
+            check_potential_moves('p');
+          }
         }
-      }
-    }
-    found_white_king:
-      printf("White king is checked\n");
-      find_checking_piece();
-      check_potential_moves('p');
-      
-    }
-    else { // black turn
-      for (int i =0; i<8; i++){
-        for (int j =0; j<8; j++){
-          if (Board[i][j] == 'K'){
-            king_row = i;
-            king_col = j;
+        else if (turn == 'w' && Board[i][j] == 'K'){
+          king_row = i;
+          king_col = j;
+          king_found = true;
 
-            potential_moves(move[0], row, col);  // calculating potential moves
-            print_potential_board();
+          potential_moves(move[0], row, col);
+          print_potential_board();
 
-            if (is_checked(i, j))
-              goto found_king;
-            goto out;
+          if (is_checked(i,j)){
+            checked = true;
+            printf("Black king is checked\n");
+            find_checking_piece();
+            check_potential_moves('P');
           }
         }
       }
-      found_king:
-      printf("Black king is checked \n");
-      find_checking_piece();
-      check_potential_moves('P');  
     }
-    out: 
 
     print_potential_board();  // drawing potential moves
+    for (int i = 0; i < 8; i++) {
+      for (int j = 0; j < 8; j++) {
+          stored_moves[i][j] = potential_moves_board[i][j];
+          // store orignial potential moves board since it gets changed in check endgame
+      }
+    }
+    
 
-    if (check_endgame()){
+    if (checked && check_endgame()){
       printf("Game over, %c wins\n", turn);
       break;
     }
-
 
     printf("Enter move: ");  // choosing the move
     scanf("%3s", move);
@@ -178,10 +180,16 @@ int main() {
     update_board(row, col);  // pass location of the piece as argument
     print_board();
 
+    if (!legal_move)
+      turn = (turn == 'w') ? 'b': 'w';
+
     printf("Enter piece: ");
     scanf("%3s", move);
   }
 }
+
+
+
 
 void check_turn() {
   if (turn == 'w' && (move[0] == 'p' || move[0] == 'r' || move[0] == 'n' ||
@@ -227,8 +235,8 @@ bool check_endgame(){
     if (Board[king_row][king_col]== 'K'){ // blacks turn
           if (is_capturable(checking_piece_row, checking_piece_col))
             return false; // checking piece can be captured 
-          int dy = king_row - checking_piece_row;
-          int dx = king_col - checking_piece_col;
+          int dy = checking_piece_row - king_row;
+          int dx = checking_piece_col - king_col;
 
         if (dx != 0)
           dx = (dx < 0) ? -1 : 1;
@@ -249,19 +257,23 @@ bool check_endgame(){
   return false; // if its not checked return false
 }
 
-bool is_capturable (int row, int col){
+bool is_capturable (int row, int col){ // give location of the checking piece
   for(int i =0; i<8; i++){
     for (int j=0; j<8; j++){
-      if (Board[i][j] > a && Board[i][j] != 'o'){
+      if (Board[row][col] < Z && Board[i][j] > a && Board[i][j] != 'o'){ 
+        // piece captured is black and looking for white pieces
+
         potential_moves(Board[i][j], i, j); // find all potential moves for that piece
         for(int k =0; k<8; k++){
-          for (int l=0; l<8; l++){
+          for (int l=0; l<8; l++){ // search through the potential moves
             if (potential_moves_board[k][l] == 'x' && row == k && col == l)
               return true;
           }
         }
       }
-      else if (Board[i][j] < Z){
+      else if (Board[row][col] > a && Board[i][j] < Z){
+        // piece captured is white and looking for black pieces
+        
         potential_moves(Board[i][j], i, j); // find all potential moves for that piece
         for(int k =0; k<8; k++){
           for (int l=0; l<8; l++){
@@ -286,8 +298,7 @@ void potential_moves(char piece, int row, int col) {
         potential_moves_board[i][j] = 'o';
     }
   }
-  if (Board[row][col] !=
-      piece)  // if the piece is not there, no potential moves
+  if (Board[row][col] != piece)  // if the piece is not there, no potential moves
     return;
 
   switch (piece) {
@@ -635,7 +646,7 @@ void find_checking_piece (){
               checking_piece_col = posx;
               return; }
           }
-          else if (dx == 0 || dy == 0){
+          else if (i == 0 || j == 0){
             if (Board[posy][posx] == 'R'){
               checking_piece = 'R'; 
               checking_piece_row = posy;
@@ -757,8 +768,7 @@ bool is_checked(int row, int col){
 void update_board(int posy, int posx) {
   int row = move[2] - '1';
   int col = move[1] - 'a';
-  if (potential_moves_board[row][col] !=
-      'x') {  // move is not one of the potential moves not legal
+  if (stored_moves[row][col] != 'x') {  // move is not one of the potential moves not legal
     printf("move not legal\n");
     legal_move = false;
     return;
