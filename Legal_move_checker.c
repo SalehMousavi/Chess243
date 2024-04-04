@@ -187,8 +187,7 @@ char potential_moves_board[8][8] = {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
                                     'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
                                     'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
                                     'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
-                                    'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
-                                    'o'};  // this marks the potential moves
+                                    'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o','o'};  // this marks the potential moves
 
 char move[4] = {'P', 'a', '3'};  // 5 characters (piece, x1, y1, x2, y2) + null terminator
 int En_passant[3]; // marks the location of En Passant pawn
