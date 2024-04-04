@@ -187,6 +187,14 @@ char potential_moves_board[8][8] = {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
                                     'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
                                     'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
                                     'o'};  // this marks the potential moves
+char stored_moves[8][8] = {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
+                                    'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
+                                    'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
+                                    'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
+                                    'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
+                                    'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
+                                    'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
+                                    'o'};  // this marks the potential moves
 
 char move[4] = {'P', 'a', '3'};  // 5 characters (piece, x1, y1, x2, y2) + null terminator
 int En_passant[3]; // marks the location of En Passant pawn
@@ -2026,7 +2034,7 @@ void displayTime() {
 
 
 void checkLegality(int finalRow, int finalCol, char* moveLegal) {
-   if(potential_moves_board[finalRow][finalCol] == 'x') {
+   if(stored_moves[finalRow][finalCol] == 'x') {
     *moveLegal = 1;
    }
    else {
@@ -2077,6 +2085,7 @@ void genPotentialMoves(int row, int col) {
         king_row = i;
         king_col = j;
         king_found = 1; // Set the flag to indicate king is found
+        
       }
     }
   }
@@ -2088,6 +2097,13 @@ void genPotentialMoves(int row, int col) {
       check_potential_moves((colour == WHITE) ? 'p' : 'P');
     }
   }
+  for (int i = 0; i < 8; i++) {
+    for (int j = 0; j < 8; j++) {
+        stored_moves[i][j] = potential_moves_board[i][j];
+        // store orignial potential moves board since it gets changed in check endgame
+    }
+  }
+  
 }
 
 bool check_endgame(){
@@ -2538,7 +2554,6 @@ void find_checking_piece (){
       }
     }
   }
-
   if(Board[king_row][king_col] == 'K'){ // whites turn
     for (int i = 0; i<8; i++){
       if (Board[dx[i]][dy[i]] == 'n'){
@@ -2678,4 +2693,27 @@ void update_board(int posy, int posx, int row, int col) {
   
   Board[row][col] = Board[posy][posx];// move piece to the destination
   Board[posy][posx] = 'o';  // set the orignal position to empty - 'o'
+}
+
+
+void print_potential_board() {
+  printf("  a b c d e f g h\n");
+  for (int i = 0; i < 8; i++){
+    printf("%d ", i + 1);
+    for (int j = 0; j < 8; j++) {
+      printf("%c ", potential_moves_board[i][j]);
+    }
+    printf("\n");
+  }
+}
+
+void print_stored_moves(){
+  printf("  a b c d e f g h\n");
+  for (int i = 0; i < 8; i++){
+    printf("%d ", i + 1);
+    for (int j = 0; j < 8; j++) {
+      printf("%c ", stored_moves[i][j]);
+    }
+    printf("\n");
+  }
 }
