@@ -2087,7 +2087,7 @@ void genPotentialMoves(int row, int col) {
         king_found = 1; // Set the flag to indicate king is found
         potential_moves(Board[row][col], row, col);
         print_potential_board();
-        print_stored_moves();
+        
       }
     }
   }
@@ -2105,7 +2105,7 @@ void genPotentialMoves(int row, int col) {
         // store orignial potential moves board since it gets changed in check endgame
     }
   }
-  
+  print_stored_moves();
 }
 
 bool check_endgame(){
