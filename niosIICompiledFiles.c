@@ -2086,34 +2086,56 @@ void resetGame(){
 
 
 void genPotentialMoves(int row, int col) {
-  int king_found = 0;
+  bool king_found = false;
+  bool checked = false;
   for (int i = 0; i < 8 && !king_found; i++) {
     for (int j = 0; j < 8 && !king_found; j++) {
-      if ((colour == WHITE && Board[i][j] == 'k') || (colour == BLACK && Board[i][j] == 'K')) {
+      if (colour == WHITE && Board[i][j] == 'k') {
         king_row = i;
         king_col = j;
-        king_found = 1; // Set the flag to indicate king is found
+        king_found = true; // Set the flag to indicate king is found
         potential_moves(Board[row][col], row, col);
         print_potential_board();
-        
+
+        if (is_checked(i,j)){
+          checked = true;
+          // printf("White king is checked\n");
+          find_checking_piece();
+          check_potential_moves('p'); // pawn is inputed only for checking turn
+        }
+
+      }
+      else if(colour == BLACK && Board[i][j] == 'K'){
+        king_row = i;
+        king_col = j;
+        king_found = true; // Set the flag to indicate king is found
+        potential_moves(Board[row][col], row, col);
+        print_potential_board();
+
+        if (is_checked(i,j)){
+          checked = true;
+          // printf("Black king is checked\n");
+          find_checking_piece();
+          check_potential_moves('P'); // pawn is inputed only for checking turn
+        }
       }
     }
   }
+
   for (int i = 0; i < 8; i++) {
     for (int j = 0; j < 8; j++) {
         stored_moves[i][j] = potential_moves_board[i][j];
         // store orignial potential moves board since it gets changed in check endgame
     }
   }
+
   print_stored_moves();
-  if (king_found == 1) {
-    potential_moves(Board[king_row][king_col], king_row, king_col); // calculating potential moves
-    if (is_checked(king_row, king_col)) {
-      find_checking_piece();
-      check_potential_moves((colour == WHITE) ? 'p' : 'P');
-    }
-  }
+
+  if (checked && check_endgame())
+      // printf("Game over, %c wins\n", turn); 
+      gameOver = 1;
   
+  update_board();
 }
 
 bool check_endgame(){
