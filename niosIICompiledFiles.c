@@ -1744,10 +1744,11 @@ void main(void)
         }
         mousePressed = 0;
         
-        if(gameOver == 1) {
-          resetGame();
-        }
+        
         setupMouse();//enable interrupts from mouse
+    }
+    if(gameOver == 1) {
+      resetGame();
     }
     //make sure to enable interrupts for mouse after
     wait_for_vsync(); // swap front and back buffers on VGA vertical sync
