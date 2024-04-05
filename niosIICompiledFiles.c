@@ -2478,10 +2478,10 @@ bool is_check_blocker (char piece, int row, int col){
       if (dy != 0)
         dy = (dy < 0) ? -1 : 1;
 
-      for (int k = 0; (k < 8 && (king_row + k*dy)<8 && (king_row + k*dy)>= 0 
-      && (king_col + k*dx)<8 && (king_col + k*dx) >= 0); k++){
-        int posy = king_row + k*dy;
-        int posx = king_col + k*dx;
+      for (int k = 0; (k < 8 && (row + k*dy)<8 && (row + k*dy)>= 0 
+      && (col + k*dx)<8 && (col + k*dx) >= 0); k++){
+        int posy = row + k*dy;
+        int posx = col + k*dx;
         if(posy != row && posx != col && Board[posy][posx] > a && Board[posy][posx] != 'o')
           return false; // another piece already blocks it
       }
@@ -2497,8 +2497,6 @@ bool is_check_blocker (char piece, int row, int col){
         (Board[posy][posx] == 'R' || Board[posy][posx] == 'Q')){
           return true;
         }
-        
-
       }
       return false;
     } 
@@ -2507,13 +2505,13 @@ bool is_check_blocker (char piece, int row, int col){
   }
   else if (Board[king_row][king_col] == 'K' && piece < Z){
     // found the king
-    int dy = row - king_row; // distance away from the piece
-    int dx = col - king_col;
+    int dy = king_row - row; // distance away from the piece
+    int dx = king_col - col;
 
-    for (int k = 1; (k < 8 && (king_row + k*dy)<8 && (king_row + k*dy)>= 0 
-      && (king_col + k*dx)<8 && (king_col + k*dx) >= 0); k++){
-        int posy = king_row + k*dy;
-        int posx = king_col + k*dx;
+    for (int k = 1; (k < 8 && (row + k*dy)<8 && (row + k*dy)>= 0 
+      && (col + k*dx)<8 && (col + k*dx) >= 0); k++){
+        int posy = row + k*dy;
+        int posx = col + k*dx;
         if(posy != row && posx != col && Board[posy][posx] < Z)
           return false; // another piece already blocks it
       }
