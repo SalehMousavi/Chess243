@@ -2098,12 +2098,12 @@ void genPotentialMoves(int row, int col) {
         king_found = true; // Set the flag to indicate king is found
         potential_moves(Board[row][col], row, col);
         print_potential_board();
-        check_potential_moves(move[0]);
 
         if (is_checked(i,j)){
           checked = true;
           // printf("White king is checked\n");
-          find_checking_piece(); 
+          find_checking_piece();
+          check_potential_moves(move[0]); 
         }
 
       }
@@ -2113,12 +2113,12 @@ void genPotentialMoves(int row, int col) {
         king_found = true; // Set the flag to indicate king is found
         potential_moves(Board[row][col], row, col);
         print_potential_board();
-        check_potential_moves(move[0]); 
 
         if (is_checked(i,j)){
           checked = true;
           // printf("Black king is checked\n");
           find_checking_piece();
+          check_potential_moves(move[0]); 
         }
       }
     }
