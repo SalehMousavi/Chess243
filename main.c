@@ -29,6 +29,9 @@ void main(void)
     {   
         //draw board
 		clear_screen();
+        drawStartingScreen();
+        while (!mousePressed);
+        mousePressed = 0; 
         drawBoard();
         drawPieces();
         if(startedMove == 1) {

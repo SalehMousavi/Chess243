@@ -20,6 +20,7 @@ volatile unsigned int undoMove = 0;
 volatile unsigned int blackTime = (10*60)-1;
 volatile unsigned int whiteTime = (10*60)-1;
 volatile char colour = WHITE; 
+int screenNum = 0; //0 starting screen 1 game
 
 volatile char potential_moves_board[8][8] = {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
                                     'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',

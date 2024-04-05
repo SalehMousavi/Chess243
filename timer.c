@@ -42,7 +42,10 @@ void HEX_PS2(char b1, char b2, char b3) {
 void timer_ISR() {
     volatile int * interval_timer_ptr = (int *)TIMER_BASE;
     *(interval_timer_ptr) = 0; // clear the interrupt
-    if(colour == WHITE){
+    if(screenNum == 0) {
+		return;
+	}
+	if(colour == WHITE){
         if(whiteTime == 0) {
 			whiteTime = 60*10;
 			gameOver = 1;

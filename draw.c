@@ -299,3 +299,11 @@ void drawSelection(int Row, int Col, char boxColour) {
     return;
 }
 
+void drawStartingScreen() {
+    for (int i = 0; i < 320; i++) {
+        for (int j = 0; j < 240; j++) {
+            plot_pixel(i, j, chessloadingscreen[j*(240)+i]);
+        }
+    }
+}
+
