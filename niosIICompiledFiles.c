@@ -6479,12 +6479,13 @@ void drawSelection(int Row, int Col, short int boxColour) {
 }
 
 void drawStartingScreen() {
-  for (int i = 0; i < 320; i++) {
-    for (int j = 0; j < 240; j++) {
-      plot_pixel(i, j, chessloadingscreen[(j*(240))+i]);
+    for (int i = 0; i < 320; i++) {
+        for (int j = 0; j < 240; j++) {
+            plot_pixel(i, j, chessloadingscreen[(j*(320))+i]);
+        }
     }
-  }
 }
+
 
 void main(void)
 {
@@ -6908,6 +6909,7 @@ void resetGame(){
   else {
     *(LEDs) = (int)2;
   }
+  screenNum = 0;
 
 }
 
