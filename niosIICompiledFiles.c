@@ -7707,8 +7707,10 @@ void check_potential_moves(char piece, int Prow, int Pcol) {
         Board[i][j] = piece;
         Board[Prow][Pcol] = 'o'; // place move
 
-        if (is_checked(king_row, king_col))
+        if (piece != 'k' && piece != 'K' && is_checked(king_row, king_col))
           potential_moves_board[i][j] = 'o'; // move not legal 
+        else if (is_checked(i, j)) // piece is not a king
+          potential_moves_board[i][j] = 'o';
 
         Board[i][j] = original_piece; // restore the pieces
         Board[Prow][Pcol] = piece; 
