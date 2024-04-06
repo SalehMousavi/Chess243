@@ -43,6 +43,7 @@ void check_potential_moves(char piece, int Prow, int Pcol);
 // checks if the potential moves are correct
 
 bool is_capturable(int row, int col);
+void castling();
 
 /***************************************************************************************************************************
  ******************************************************** GLOBALS
@@ -52,10 +53,10 @@ char Board[8][8] = {'R', 'N', 'B', 'o', 'K', 'B', 'N', 'R',
                     'P', 'P', 'P', 'P', 'o', 'o', 'o', 'P', 
                     'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 
                     'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 
-                    'o', 'o', 'o', 'Q', 'o', 'o', 'o', 'o', 
                     'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 
-                    'p', 'p', 'p', 'p', 'p', 'p', 'p', 'p', 
-                    'q', 'n', 'b', 'q', 'k', 'b', 'n', 'r' };
+                    'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 
+                    'p', 'p', 'p', 'Q', 'p', 'p', 'p', 'p', 
+                    'q', 'n', 'b', 'q', 'k', 'o', 'o', 'r' };
 // capital resembles black pieces and lower case resembles white pieces
 
 char potential_moves_board[8][8] = {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
@@ -71,7 +72,7 @@ char stored_moves[8][8];
 
 char move[4] = {'P', 'a',
                 '3'};  // 5 characters (piece, x1, y1, x2, y2) + null terminator
-char turn = 'b';
+char turn = 'w';
 bool legal_move = true;
 
 int En_passant[3];  // marks the location of En Passant pawn
@@ -432,10 +433,13 @@ void potential_moves(char piece, int row, int col) {
     case 'k':
       for (int i = -1; i < 2 && (row + i) >= 0 && (row + i) < 8; i++) {
         for (int j = -1; j < 2 && (col + j) >= 0 && (col + j) < 8; j++) {
-          if ((Board[row + i][col + j] == 'o' || Board[row + i][col + j] < Z))
+          if ((row + i) < 0 || (row + i) > 7  || (col + j) < 0 || (col + j) > 8)
+            continue;
+          if ((Board[row + i][col + j] < Z) || Board[row + i][col + j] == 'o')
             potential_moves_board[row + i][col + j] = 'x';
         }
       }
+      castling();
       break;
 
     case 'K':
@@ -447,11 +451,36 @@ void potential_moves(char piece, int row, int col) {
             potential_moves_board[row + i][col + j] = 'x';
         }
       }
+      castling();
       break;
   }
 }
 
 
+
+
+void castling(){
+  if (Board[king_row][king_col] == 'k'){
+    if (!white_king_moved && !rw_rook_moved){
+      castling_enable = true;
+      potential_moves_board[7][6] = 'x'; }
+    else if (!white_king_moved && !lw_rook_moved){
+      castling_enable = true;
+      potential_moves_board[7][1] = 'x'; }
+    else
+      castling_enable = false;
+  }
+  else {
+    if (!black_king_moved && !rb_rook_moved){
+      castling_enable = true;
+      potential_moves_board[0][6] = 'x'; }
+    else if (!black_king_moved && !lb_rook_moved){
+      castling_enable = true;
+      potential_moves_board[0][1] = 'x'; }
+    else 
+      castling_enable = false;
+  }
+}
 
 void potential_moves_indirection(char piece, int dy, int dx, int row, int col) {
   if (piece > a) {
@@ -498,7 +527,7 @@ void check_potential_moves(char piece, int Prow, int Pcol) {
         Board[i][j] = piece;
         Board[Prow][Pcol] = 'o'; // place move
 
-        if (is_checked(king_row, king_col))
+        if (is_checked(i, j))
           potential_moves_board[i][j] = 'o'; // move not legal 
 
         Board[i][j] = original_piece; // restore the pieces
@@ -581,24 +610,30 @@ void update_board(int posy, int posx) {
     Board[posy][posx + 1] = 'o';
 
   /********************** CASTLING *********************/
-  else if (castling_enable && col == 3 && move[0] == 'r') {
+  else if (castling_enable && col == 3 && move[0] == 'k') {
     Board[7][4] = 'o';  // move the king
     Board[7][2] = 'k';
+    Board[7][0] = 'o';
+    Board[7][3] = 'r';
     white_king_moved = true;
     castling_enable = false;
-  } else if (castling_enable && col == 5 && move[0] == 'r') {
+  } else if (castling_enable && col == 6 && move[0] == 'k') {
     Board[7][4] = 'o';  // move the king
     Board[7][6] = 'k';
+    Board[7][7] = 'o';
+    Board[7][5] = 'r';
     white_king_moved = true;
     castling_enable = false;
-  } else if (castling_enable && col == 3 && move[0] == 'R') {
+  } else if (castling_enable && col == 3 && move[0] == 'K') {
     Board[0][4] = 'o';  // move the king
     Board[0][2] = 'K';
+    Board[0][3] = 'R';
     black_king_moved = true;
     castling_enable = false;
-  } else if (castling_enable && col == 5 && move[0] == 'R') {
+  } else if (castling_enable && col == 6 && move[0] == 'K') {
     Board[0][4] = 'o';  // move the king
-    Board[0][2] = 'K';
+    Board[0][6] = 'K';
+    Board[7][5] = 'R';
     black_king_moved = true;
     castling_enable = false;
   }
