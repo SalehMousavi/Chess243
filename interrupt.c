@@ -99,6 +99,7 @@ void interrupt_handler(void) {
     else if(ipending & 0x1) {// else, ignore the interrupt
         timer_ISR();
     } 
+    else if(ipending & )
     return; 
 }
 
