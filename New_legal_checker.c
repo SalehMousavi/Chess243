@@ -55,8 +55,8 @@ char Board[8][8] = {'R', 'N', 'B', 'o', 'K', 'B', 'N', 'R',
                     'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 
                     'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 
                     'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 
-                    'p', 'p', 'p', 'Q', 'p', 'p', 'p', 'p', 
-                    'q', 'n', 'b', 'q', 'k', 'o', 'o', 'r' };
+                    'p', 'p', 'p', 'q', 'p', 'p', 'p', 'p', 
+                    'q', 'n', 'b', 'o', 'k', 'o', 'o', 'r' };
 // capital resembles black pieces and lower case resembles white pieces
 
 char potential_moves_board[8][8] = {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
@@ -72,7 +72,7 @@ char stored_moves[8][8];
 
 char move[4] = {'P', 'a',
                 '3'};  // 5 characters (piece, x1, y1, x2, y2) + null terminator
-char turn = 'w';
+char turn = 'b';
 bool legal_move = true;
 
 int En_passant[3];  // marks the location of En Passant pawn
@@ -527,7 +527,7 @@ void check_potential_moves(char piece, int Prow, int Pcol) {
         Board[i][j] = piece;
         Board[Prow][Pcol] = 'o'; // place move
 
-        if (is_checked(i, j))
+        if (is_checked(king_row, king_col))
           potential_moves_board[i][j] = 'o'; // move not legal 
 
         Board[i][j] = original_piece; // restore the pieces
@@ -627,13 +627,15 @@ void update_board(int posy, int posx) {
   } else if (castling_enable && col == 3 && move[0] == 'K') {
     Board[0][4] = 'o';  // move the king
     Board[0][2] = 'K';
+    Board[0][0] = 'o';
     Board[0][3] = 'R';
     black_king_moved = true;
     castling_enable = false;
   } else if (castling_enable && col == 6 && move[0] == 'K') {
     Board[0][4] = 'o';  // move the king
     Board[0][6] = 'K';
-    Board[7][5] = 'R';
+    Board[0][7] = 'o';
+    Board[0][5] = 'R';
     black_king_moved = true;
     castling_enable = false;
   }
