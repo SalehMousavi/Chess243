@@ -7709,7 +7709,7 @@ void check_potential_moves(char piece, int Prow, int Pcol) {
 
         if (piece != 'k' && piece != 'K' && is_checked(king_row, king_col))
           potential_moves_board[i][j] = 'o'; // move not legal 
-        else if (is_checked(i, j)) // piece is not a king
+        else if ((piece == 'k' || piece == 'K') && is_checked(i, j)) // piece is not a king
           potential_moves_board[i][j] = 'o';
 
         Board[i][j] = original_piece; // restore the pieces
@@ -7744,51 +7744,52 @@ void castling(){
 }
 
 bool is_checked(int row, int col) {  // give location of king
+  int posy, posx;
+  int kingColour = (Board[row][col] == 'K') ? BLACK : WHITE;
   for (int i = -1; i < 2; i++) {
     for (int j = -1; j < 2; j++) {
       for (int k = 1; k < 8; k++) {
-        int posy = row + (k * i);
-        int posx = col + (k * j);
-
+        posy = row + (k * i);
+        posx = col + (k * j);
         if (posy < 0 || posy > 7 || posx < 0 || posx > 7)
-          break;  // stop proceeding if we are out of boands
+          break;
+        else if(Board[posy][posx] != 'o') {
+          if(kingColour == BLACK) {
+            if (k == 1 && i == 1 && abs(j) == 1 && Board[posy][posx] == 'p')
+              return true;
+            else if (abs(i) == abs(j) && (Board[posy][posx] == 'q' || Board[posy][posx] == 'b'))
+              // checking diagonal direction
+              return true;
 
-        if (Board[row][col] > a) {  // white piece
-          if (Board[posy][posx] > a &&
-              Board[posy][posx] != 'o')  // blocked by our piece
-            break;
-
-          if (abs(i) == 1 && abs(j) == 1 &&
-              ((k == 1 && Board[posy][posx] == 'P') ||
-               Board[posy][posx] == 'Q' || Board[posy][posx] == 'B'))
-            // checking diagonal direction
+            else if ((abs(i) == 0 || abs(j) == 0) &&
+                    (Board[posy][posx] == 'q' || Board[posy][posx] == 'r'))
+              // checking horizontal and vertical direction
+              return true;
+            else if (((abs(i) == 2 && abs(j) == 1) || (abs(i) == 1 && abs(j) == 2)) &&
+                Board[posy][posx] == 'n')
+              // checking for knights around the king
+              return true;
+            else
+              break;
+          }
+          else { // white
+            if (k == 1 && i == -1 && abs(j) == 1 && Board[posy][posx] == 'P')
             return true;
+            else if (abs(i) == abs(j) && (Board[posy][posx] == 'Q' || Board[posy][posx] == 'B'))
+            // checking diagonal direction
+              return true;
 
-          else if ((abs(i) == 0 || abs(j) == 0) &&
+            else if ((abs(i) == 0 || abs(j) == 0) &&
                    (Board[posy][posx] == 'Q' || Board[posy][posx] == 'R'))
             // checking horizontal and vertical direction
-            return true;
-          if (((abs(i) == 2 && abs(j) == 1) || (abs(i) == 1 && abs(j) == 2)) &&
+              return true;
+            else if (((abs(i) == 2 && abs(j) == 1) || (abs(i) == 1 && abs(j) == 2)) &&
               Board[posy][posx] == 'N')
             // checking for knights around the king
-            return true;
-        } else {                      // black piece
-          if (Board[posy][posx] < Z)  // blocked by our piece
-            break;
-          if (abs(i) == 1 && abs(j) == 1 &&
-              ((k == 1 && Board[posy][posx] == 'p') ||
-               Board[posy][posx] == 'q' || Board[posy][posx] == 'b'))
-            // checking diagonal direction
-            return true;
-
-          else if ((abs(i) == 0 || abs(j) == 0) &&
-                   (Board[posy][posx] == 'q' || Board[posy][posx] == 'r'))
-            // checking horizontal and vertical direction
-            return true;
-          if (((abs(i) == 2 && abs(j) == 1) || (abs(i) == 1 && abs(j) == 2)) &&
-              Board[posy][posx] == 'n')
-            // checking for knights around the king
-            return true;
+              return true;
+            else 
+              break;
+          }
         }
       }
     }
