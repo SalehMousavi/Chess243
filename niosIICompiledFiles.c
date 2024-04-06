@@ -7469,31 +7469,137 @@ bool check_endgame() {
   }
 }
 
-bool is_capturable (int row, int col){
-  for(int i =0; i<8; i++){
-    for (int j=0; j<8; j++){
-      if (Board[i][j] > a && Board[i][j] != 'o'){
-        potential_moves(Board[i][j], i, j); // find all potential moves for that piece
-        for(int k =0; k<8; k++){
-          for (int l=0; l<8; l++){
-            if (potential_moves_board[k][l] == 'x' && row == k && col == l)
-              return true;
-          }
-        }
+
+void find_checking_piece() {
+  int dx[8] = {-1, -2, -2, -1, 1, 2, 2, 1};
+  int dy[8] = {-2, -1, 1, 2, 2, 1, -1, -2};
+
+  if (Board[king_row][king_col] == 'k') {  // whites turn
+    for (int i = 0; i < 8; i++) {
+      if (king_row + dy[i] < 0 && king_row + dy[i] > 7 &&
+          king_col + dx[i] < 0 && king_col + dx[i] > 7)
+        continue;  // out of bounds
+      if (Board[king_row + dy[i]][king_col + dx[i]] == 'N') {
+        checking_piece = 'N';
+        return;
       }
-      else if (Board[i][j] < Z){
-        potential_moves(Board[i][j], i, j); // find all potential moves for that piece
-        for(int k =0; k<8; k++){
-          for (int l=0; l<8; l++){
-            if (potential_moves_board[k][l] == 'x' && row == k && col == l)
-              return true;
+    }
+    for (int i = -1; i < 2; i++) {
+      for (int j = -1; j < 2; j++) {
+        for (int k = 1;
+             (k < 8 && (king_row + k * i) < 8 && (king_row + k * j) >= 0 &&
+              (king_col + k * i) < 8 && (king_col + k * j) >= 0);
+             k++) {
+          int posy = king_row + k * i;
+          int posx = king_col + k * j;
+          printf("%c \n", Board[posy][posx]);
+          if (Board[posy][posx] > a && Board[posy][posx] != 'o')
+            break;  // stop progressing when reaching our piece
+          if (i == j || i == -j) {
+            if (Board[posy][posx] == 'B') {
+              checking_piece = 'B';
+              checking_piece_row = posy;
+              checking_piece_col = posx;
+              return;
+            }
+            if (Board[posy][posx] == 'Q') {  // bishop or queen
+              checking_piece = 'Q';
+              checking_piece_row = posy;
+              checking_piece_col = posx;
+              return;
+            }
+          } else if (i == 0 || j == 0) {
+            if (Board[posy][posx] == 'R') {
+              checking_piece = 'R';
+              checking_piece_row = posy;
+              checking_piece_col = posx;
+              return;
+            }
+            if (Board[posy][posx] == 'Q') {
+              checking_piece = 'Q';
+              checking_piece_row = posy;
+              checking_piece_col = posx;
+              return;
+            }
           }
         }
       }
     }
   }
+
+  if (Board[king_row][king_col] == 'K') {  // black turn
+    for (int i = 0; i < 8; i++) {
+      if (king_row + dy[i] < 0 && king_row + dy[i] > 7 &&
+          king_col + dx[i] < 0 && king_col + dx[i] > 7)
+        continue;  // out of bounds
+      if (Board[king_row + dy[i]][king_col + dx[i]] == 'n') {
+        checking_piece = 'n';
+        return;
+      }
+    }
+    for (int i = -1; i < 2; i++) {
+      for (int j = -1; j < 2; j++) {
+        for (int k = 1;
+             (k < 8 && (king_row + k * i) < 8 && (king_row + k * i) >= 0 &&
+              (king_col + k * j) < 8 && (king_col + k * j) >= 0);
+             k++) {
+          int posy = king_row + k * i;
+          int posx = king_col + k * j;
+          if (Board[posy][posx] < Z)
+            break;  // stop progressing when reaching our piece
+          if (i == j || i == -j) {
+            if (Board[posy][posx] == 'b') {
+              checking_piece = 'b';
+              checking_piece_row = posy;
+              checking_piece_col = posx;
+              return;
+            }
+            if (Board[posy][posx] == 'q') {  // bishop or queen
+              checking_piece = 'q';
+              checking_piece_row = posy;
+              checking_piece_col = posx;
+              return;
+            }
+          } else if (i == 0 || j == 0) {
+            if (Board[posy][posx] == 'r') {
+              checking_piece = 'r';
+              checking_piece_row = posy;
+              checking_piece_col = posx;
+              return;
+            }
+            if (Board[posy][posx] == 'q') {
+              checking_piece = 'q';
+              checking_piece_row = posy;
+              checking_piece_col = posx;
+              return;
+            }
+          }
+        }
+      }
+    }
+
+  }
+}
+
+bool is_capturable(int row, int col) {  // give location of the checking piece
+  for (int i = 0; i < 8; i++) {
+    for (int j = 0; j < 8; j++) {
+      if ((Board[row][col] < Z || Board[i][j] > a) && Board[i][j] != 'o' && Board[i][j] != 'k' && Board[i][j] != 'K') {
+        // piece captured is black and looking for white pieces
+
+        potential_moves(Board[i][j], i, j);  // find all potential moves for that piece
+        for (int k = 0; k < 8; k++) {
+          for (int l = 0; l < 8; l++) {  // search through the potential moves
+            if (potential_moves_board[k][l] == 'x' && row == k && col == l)
+              return true;
+          }
+        }
+      } 
+    }
+  }
   return false;
-} 
+}
+
 
 /*********************************************************************************************
  **************************************** POTENTIAL MOVES *************************************
