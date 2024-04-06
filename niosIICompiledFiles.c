@@ -7833,11 +7833,11 @@ void check_potential_moves(char piece, int Prow, int Pcol) {
 }
 
 void castling(){
-  if (Board[king_row][king_col] == 'k' && Board[0][5] == 'o' && Board[0][6] == 'o'){
-    if (!white_king_moved && !rw_rook_moved){
+  if (Board[king_row][king_col] == 'k'){
+    if (!white_king_moved && !rw_rook_moved && Board[7][5] == 'o' && Board[7][6] == 'o'){
       castling_enable = true;
       potential_moves_board[7][6] = 'x'; }
-    else if (!white_king_moved && !lw_rook_moved && Board[0][2] == 'o' && Board[0][3] == 'o'){
+    else if (!white_king_moved && !lw_rook_moved && Board[7][2] == 'o' && Board[7][3] == 'o' && Board[7][1] == 'o'){
       castling_enable = true;
       potential_moves_board[7][1] = 'x'; }
     else
@@ -7847,7 +7847,7 @@ void castling(){
     if (!black_king_moved && !rb_rook_moved && Board[0][5] == 'o' && Board[0][6] == 'o'){
       castling_enable = true;
       potential_moves_board[0][6] = 'x'; }
-    else if (!black_king_moved && !lb_rook_moved && Board[0][2] == 'o' && Board[0][3] == 'o'){
+    else if (!black_king_moved && !lb_rook_moved && Board[0][2] == 'o' && Board[0][3] == 'o' && Board[0][1] == 'o'){
       castling_enable = true;
       potential_moves_board[0][1] = 'x'; }
     else 
