@@ -59,6 +59,9 @@ void find_checking_piece ();
 
 bool is_capturable (int row, int col);
 
+void print_potential_board();
+void print_stored_moves();
+
 /* The assembly language code below handles CPU reset processing */
 void the_reset(void) __attribute__((section(".reset")));
 void the_reset(void)
@@ -6923,33 +6926,18 @@ void genPotentialMoves(int row, int col) {
   bool checked = false;
   for (int i = 0; i < 8 && !king_found; i++) {
     for (int j = 0; j < 8 && !king_found; j++) {
-      if (colour == WHITE && Board[i][j] == 'k') {
+      if ((colour == WHITE && Board[i][j] == 'k') || (colour == BLACK && Board[i][j] == 'K')) {
         king_row = i;
         king_col = j;
         king_found = true; // Set the flag to indicate king is found
         potential_moves(Board[row][col], row, col);
         print_potential_board();
-        check_potential_moves(move[0]); 
 
         if (is_checked(i,j)){
           checked = true;
           // printf("White king is checked\n");
           find_checking_piece();
-        }
-
-      }
-      else if(colour == BLACK && Board[i][j] == 'K'){
-        king_row = i;
-        king_col = j;
-        king_found = true; // Set the flag to indicate king is found
-        potential_moves(Board[row][col], row, col);
-        print_potential_board();
-        check_potential_moves(move[0]); 
-
-        if (is_checked(i,j)){
-          checked = true;
-          // printf("Black king is checked\n");
-          find_checking_piece();
+          check_potential_moves(Board[row][col]); 
         }
       }
     }
@@ -6963,11 +6951,6 @@ void genPotentialMoves(int row, int col) {
   }
 
   print_stored_moves();
-
-  if (checked && check_endgame())
-      // printf("Game over, %c wins\n", turn); 
-      gameOver = 1;
-  
 }
 
 bool check_endgame(){
