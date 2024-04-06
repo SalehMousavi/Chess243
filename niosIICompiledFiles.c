@@ -7407,7 +7407,7 @@ bool check_endgame() {
     return false;
   }
   else if (Board[king_row][king_col] == 'k') {  // whites turn
-    
+    find_checking_piece();
     if (is_capturable(checking_piece_row, checking_piece_col))
       return false;  // checking piece can be captured
     int dy = checking_piece_row - king_row;
@@ -7437,6 +7437,7 @@ bool check_endgame() {
     return true;  // game over
   }
   else if (Board[king_row][king_col] == 'K') {  // blacks turn
+    find_checking_piece();
     if (is_capturable(checking_piece_row, checking_piece_col))
       return false;  // checking piece can be captured
     int dy = checking_piece_row - king_row;
@@ -7584,21 +7585,26 @@ void find_checking_piece() {
 bool is_capturable(int row, int col) {  // give location of the checking piece
   for (int i = 0; i < 8; i++) {
     for (int j = 0; j < 8; j++) {
-      if ((Board[row][col] < Z || Board[i][j] > a) && Board[i][j] != 'o' && Board[i][j] != 'k' && Board[i][j] != 'K') {
+      if (Board[i][j] == 'k' || Board[i][j] == 'K' || Board[i][j] == 'o')
+        continue;
+      if (colour == BLACK && Board[i][j] > a) { // white turn
         // piece captured is black and looking for white pieces
+        potential_moves(Board[i][j], i, j);  // find all potential moves for that piece
+        if (potential_moves_board[row][col] == 'x')
+          return true;
+
+      } else if (colour == WHITE && Board[i][j] < Z) { // blacks turn
+        // only check the potential moves for black pieces
 
         potential_moves(Board[i][j], i, j);  // find all potential moves for that piece
-        for (int k = 0; k < 8; k++) {
-          for (int l = 0; l < 8; l++) {  // search through the potential moves
-            if (potential_moves_board[k][l] == 'x' && row == k && col == l)
-              return true;
-          }
-        }
+       if (potential_moves_board[row][col] == 'x')
+          return true;
       } 
     }
   }
   return false;
 }
+
 
 
 /*********************************************************************************************
@@ -7827,21 +7833,21 @@ void check_potential_moves(char piece, int Prow, int Pcol) {
 }
 
 void castling(){
-  if (Board[king_row][king_col] == 'k'){
+  if (Board[king_row][king_col] == 'k' && Board[0][5] == 'o' && Board[0][6] == 'o'){
     if (!white_king_moved && !rw_rook_moved){
       castling_enable = true;
       potential_moves_board[7][6] = 'x'; }
-    else if (!white_king_moved && !lw_rook_moved){
+    else if (!white_king_moved && !lw_rook_moved && Board[0][2] == 'o' && Board[0][3] == 'o'){
       castling_enable = true;
       potential_moves_board[7][1] = 'x'; }
     else
       castling_enable = false;
   }
   else {
-    if (!black_king_moved && !rb_rook_moved){
+    if (!black_king_moved && !rb_rook_moved && Board[0][5] == 'o' && Board[0][6] == 'o'){
       castling_enable = true;
       potential_moves_board[0][6] = 'x'; }
-    else if (!black_king_moved && !lb_rook_moved){
+    else if (!black_king_moved && !lb_rook_moved && Board[0][2] == 'o' && Board[0][3] == 'o'){
       castling_enable = true;
       potential_moves_board[0][1] = 'x'; }
     else 
