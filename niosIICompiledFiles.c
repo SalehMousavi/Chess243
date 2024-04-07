@@ -7446,12 +7446,17 @@ bool check_endgame() {
     if (dx != 0) dx = (dx < 0) ? -1 : 1;
     if (dy != 0) dy = (dy < 0) ? -1 : 1;
 
+    int posy = king_row;
+    int posx = king_col;
+
     for (int k = 1;
           (k < 8 && (king_row + k * dy) < 8 && (king_row + k * dy) >= 0 &&
-          (king_col + k * dx) < 8 && (king_col + k * dx) >= 0);
+          (king_col + k * dx) < 8 && (king_col + k * dx) >= 0) && 
+          posy != checking_piece_row && posx != checking_piece_col;
           k++) {
-      int posy = king_row + k * dy;
-      int posx = king_col + k * dx;
+
+      posy = king_row + k * dy;
+      posx = king_col + k * dx;
       if (is_capturable(posy, posx))
         return false;  // checking path can be blocked
     }
