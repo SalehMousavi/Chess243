@@ -7931,7 +7931,7 @@ void update_board(int posy, int posx, int row, int col) {
     Board[posy][posx +1] = 'o';
 
   /********************** CASTLING *********************/
-   else if (castling_enable && col == 3 && Board[posy][posx] == 'k') {
+   else if (castling_enable && col == 2 && move[0] == 'k') {
     Board[7][4] = 'o';  // move the king
     Board[7][2] = 'k';
     Board[7][0] = 'o';
@@ -7939,7 +7939,7 @@ void update_board(int posy, int posx, int row, int col) {
     white_king_moved = true;
     castling_enable = false;
     return;
-  } else if (castling_enable && col == 6 && Board[posy][posx] == 'k') {
+  } else if (castling_enable && col == 6 && move[0] == 'k') {
     Board[7][4] = 'o';  // move the king
     Board[7][6] = 'k';
     Board[7][7] = 'o';
@@ -7947,7 +7947,7 @@ void update_board(int posy, int posx, int row, int col) {
     white_king_moved = true;
     castling_enable = false;
     return;
-  } else if (castling_enable && col == 3 && Board[posy][posx] == 'K') {
+  } else if (castling_enable && col == 2 && move[0] == 'K') {
     Board[0][4] = 'o';  // move the king
     Board[0][2] = 'K';
     Board[0][0] = 'o';
@@ -7955,11 +7955,11 @@ void update_board(int posy, int posx, int row, int col) {
     black_king_moved = true;
     castling_enable = false;
     return;
-  } else if (castling_enable && col == 6 && Board[posy][posx] == 'K') {
+  } else if (castling_enable && col == 6 && move[0] == 'K') {
     Board[0][4] = 'o';  // move the king
     Board[0][6] = 'K';
     Board[0][7] = 'o';
-    Board[7][5] = 'R';
+    Board[0][5] = 'R';
     black_king_moved = true;
     castling_enable = false;
     return;
