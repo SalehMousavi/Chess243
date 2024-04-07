@@ -7934,12 +7934,11 @@ bool is_checked(int row, int col) {  // give location of king
 
 
 void update_board(int posy, int posx, int row, int col) {
-  /********************** EN PASSANT *********************/
-  if (En_passant_enable && row == En_passant[0] && col == En_passant[1])
-    Board[posy][posx -1] = 'o'; // elimintate piece
-  
-  else if (En_passant_enable && row == En_passant[2] && col == En_passant[3])
-    Board[posy][posx +1] = 'o';
+  /************************ PROMOTION *********************/
+  if ((colour == WHITE && Board[posy][posx] == 'p' && row == 0) ||
+  (colour == BLACK && Board[posy][posx] == 'P' && row == 7))
+    promotion_enable = true;
+
 
   /********************** CASTLING *********************/
    else if (castling_enable && col == 2 && Board[posy][posx] == 'k') {
