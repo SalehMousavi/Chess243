@@ -6645,7 +6645,6 @@ do { dest = __builtin_rdctl(5); } while (0)
 #define GAMEOVERsound 3
 #define REMOVETHIS 1
 volatile int gameOver = 0;
-int mouseCount = MOUSEOFFSET;
 volatile int pixel_buffer_start; // global variable
 short int Buffer1[240][512]; // 240 rows, 512 (320 + padding) columns
 short int Buffer2[240][512];
