@@ -7411,14 +7411,14 @@ void genPotentialMoves(int row, int col) {
 
 bool check_endgame() {
   // if checked, check if the checking path can be blocked or if the checking
-  // piece can be captured
-  if(!is_checked(king_row, king_col)) {
+  // piece can be capture
+  if (!is_checked(king_row, king_col))
     return false;
-  }
-  else if (Board[king_row][king_col] == 'k') {  // whites turn
+  if (Board[king_row][king_col] == 'k') {  // whites turn 
     find_checking_piece();
     if (is_capturable(checking_piece_row, checking_piece_col))
       return false;  // checking piece can be captured
+
     int dy = checking_piece_row - king_row;
     int dx = checking_piece_col - king_col;
 
@@ -7445,10 +7445,11 @@ bool check_endgame() {
 
     return true;  // game over
   }
-  else if (Board[king_row][king_col] == 'K') {  // blacks turn
+  if (Board[king_row][king_col] == 'K') {  // blacks turn
     find_checking_piece();
     if (is_capturable(checking_piece_row, checking_piece_col))
       return false;  // checking piece can be captured
+
     int dy = checking_piece_row - king_row;
     int dx = checking_piece_col - king_col;
 
@@ -7472,7 +7473,7 @@ bool check_endgame() {
 
     potential_moves('K', king_row, king_col);
     check_potential_moves('K', king_row, king_col);
-    //print_potential_board();
+    print_potential_board();
     for (int i = 0; i < 8; i++) {
       for (int j = 0; j < 8; j++) {
         if (potential_moves_board[i][j] == 'x')
@@ -7483,7 +7484,6 @@ bool check_endgame() {
     return true;  // game over
   }
 }
-
 
 void find_checking_piece() {
   int dx[8] = {-1, -2, -2, -1, 1, 2, 2, 1};
@@ -7507,7 +7507,7 @@ void find_checking_piece() {
              k++) {
           int posy = king_row + k * i;
           int posx = king_col + k * j;
-          //printf("%c \n", Board[posy][posx]);
+          printf("%c \n", Board[posy][posx]);
           if (Board[posy][posx] > a && Board[posy][posx] != 'o')
             break;  // stop progressing when reaching our piece
           if (i == j || i == -j) {
@@ -7595,6 +7595,8 @@ void find_checking_piece() {
 
   }
 }
+
+
 
 bool is_capturable(int row, int col) {  // give location of the checking piece
   for (int i = 0; i < 8; i++) {
