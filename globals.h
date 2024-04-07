@@ -63,4 +63,14 @@ char Board[8][8] = {
 'p', 'p', 'p', 'p', 'p', 'p', 'p', 'p', 
 'r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'}; //8x8 gameboard global variable
 
+typedef struct audio_reg {
+  volatile int control;
+  volatile char rarc;
+  volatile char ralc;
+  volatile char wsrc;
+  volatile char wslc;
+  volatile int ldata;
+  volatile int rdata;
+} audio;
+
 #endif
