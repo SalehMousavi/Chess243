@@ -1,7 +1,6 @@
 /*******************************************************************************
  * This file provides address values that exist in the DE1-SoC Computer
  ******************************************************************************/
-
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
