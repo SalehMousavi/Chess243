@@ -6518,6 +6518,7 @@ void disableAudio();
 void resetAudio();
 void enableAudio();
 void audio_ISR();
+void getKingPosition(int kingColour)
 
 /* The assembly language code below handles CPU reset processing */
 void the_reset(void) __attribute__((section(".reset")));
@@ -7385,6 +7386,7 @@ void displayTime() {
  ***************************************************************************************************************************/
 
 void getKingPosition(int kingColour) {
+  bool king_found = false;
    for (int i = 0; i < 8 && !king_found; i++) {
     for (int j = 0; j < 8 && !king_found; j++) {
       if ((kingColour == WHITE && Board[i][j] == 'k') || (kingColour == BLACK && Board[i][j] == 'K')) {
