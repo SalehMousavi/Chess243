@@ -34,18 +34,19 @@ void audio_ISR() {
 }
 
 void enableAudio() {//enable interrupts for audio 
-    volatile unsigned int* audioPtr = (int*) AUDIO_BASE;
-    *(audioPtr) = 0x2;
+    volatile audio*  audioPtr = (int*) AUDIO_BASE;
+    audioPtr->control = 0b10;//reset fifo
 }
 
 void disableAudio() {
-    volatile unsigned int* audioPtr = (int*) AUDIO_BASE;
-    *(audioPtr) = 0;
+    volatile audio*  audioPtr = (int*) AUDIO_BASE;
+    audioPtr->control = 0;//reset fifo
     soundSampleIndex = 0;
 }
 
 void resetAudio() {
-    volatile unsigned int* audioPtr = (int*) AUDIO_BASE;
-    *(audioPtr) = 0x8;//reset fifo
+    volatile audio*  audioPtr = (int*) AUDIO_BASE;
+    audioPtr->control = 0b1100;//reset fifo
+    audioPtr->control = 0;
     soundSampleIndex = 0;
 }

@@ -72,6 +72,8 @@ void main(void)
                 finalCol = moveCol;
                 checkLegality(finalRow, finalCol, &moveLegal);
                 if(moveLegal) {
+                    soundType = MOVEsound;
+                    enableAudio();
                   update_board(startingRow, startingCol, finalRow, finalCol);
                   colour = colour == WHITE? BLACK: WHITE;//change colour
                   printf("%d",check_endgame());
