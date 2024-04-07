@@ -2,9 +2,10 @@
 #include <control_macros.h>
 #include <globals.h>
 #include <pieces.h>
+#include <typedefs.h>
 
+//so whenever you enter this ISR write a sample
 void audio_ISR() {
-    //so whenever you enter this ISR write a sample
     const audio*  audio_ptr = (audio*)0xFF203040;
 
     if (soundType == MOVEsound){

@@ -126,6 +126,4 @@ void the_reset(void)
     asm("movia r2, main" );
     asm("jmp r2");
 }
-
- /* Instruct the assembler NOT to use reg at (r1) as * a temp register for performing optimizations */ nobreak"); /* Suppresses a warning message that says that * some debuggers corrupt regs bt (r25) and ba
-
+/* Instruct the assembler NOT to use reg at (r1) as * a temp register for performing optimizations */
