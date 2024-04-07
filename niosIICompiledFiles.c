@@ -7938,6 +7938,7 @@ void update_board(int posy, int posx, int row, int col) {
     Board[7][3] = 'r';
     white_king_moved = true;
     castling_enable = false;
+    return;
   } else if (castling_enable && col == 6 && Board[posy][posx] == 'k') {
     Board[7][4] = 'o';  // move the king
     Board[7][6] = 'k';
@@ -7945,6 +7946,7 @@ void update_board(int posy, int posx, int row, int col) {
     Board[7][5] = 'r';
     white_king_moved = true;
     castling_enable = false;
+    return;
   } else if (castling_enable && col == 3 && Board[posy][posx] == 'K') {
     Board[0][4] = 'o';  // move the king
     Board[0][2] = 'K';
@@ -7952,6 +7954,7 @@ void update_board(int posy, int posx, int row, int col) {
     Board[0][3] = 'R';
     black_king_moved = true;
     castling_enable = false;
+    return;
   } else if (castling_enable && col == 6 && Board[posy][posx] == 'K') {
     Board[0][4] = 'o';  // move the king
     Board[0][6] = 'K';
@@ -7959,6 +7962,7 @@ void update_board(int posy, int posx, int row, int col) {
     Board[7][5] = 'R';
     black_king_moved = true;
     castling_enable = false;
+    return;
   }
   
   Board[row][col] = Board[posy][posx];// move piece to the destination
