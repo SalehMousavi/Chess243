@@ -29,6 +29,7 @@ void main(void)
   setupMouse();
   setupTimer();
   setupInterrupts();
+  resetAudio();
   
   while (1) {   
       //draw board
@@ -72,9 +73,18 @@ void main(void)
                 finalCol = moveCol;
                 checkLegality(finalRow, finalCol, &moveLegal);
                 if(moveLegal) {
-                    soundType = MOVEsound;
-                    enableAudio();
+                  
                   update_board(startingRow, startingCol, finalRow, finalCol);
+                  if(is_checked(king_row, king_col)) {
+                    soundType = CHECKsound;
+                  }
+                  else if(Board[finalRow][finalCol] != 'o') {
+                    soundType = CAPTUREsound;
+                  }
+                  else {
+                    soundType = MOVEsound;
+                  }
+                  enableAudio();
                   colour = colour == WHITE? BLACK: WHITE;//change colour
                   printf("%d",check_endgame());
                   if(check_endgame() == true) {
@@ -105,3 +115,4 @@ void main(void)
     pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer	
 	}
 }
+

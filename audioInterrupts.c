@@ -7,29 +7,30 @@
 //so whenever you enter this ISR write a sample
 void audio_ISR() {
     audio* const audio_ptr = (audio*)0xFF203040;
+    while(audio_ptr->wsrc != 0) {
+      if (soundType == MOVEsound){
+          audio_ptr -> ldata = move_left[soundSampleIndex];
+          audio_ptr -> rdata = move_right[soundSampleIndex];
+          soundSampleIndex ++;
+          if (soundSampleIndex == MoveSongSize)
+              disableAudio();
+      }
+      else if (soundType == CAPTUREsound){
+          audio_ptr -> ldata = capture_left[soundSampleIndex];
+          audio_ptr -> rdata = capture_right[soundSampleIndex];
+          soundSampleIndex++;
 
-    if (soundType == MOVEsound){
-        audio_ptr -> ldata = move_left[soundSampleIndex];
-        audio_ptr -> rdata = move_right[soundSampleIndex];
-        soundSampleIndex ++;
-        if (soundSampleIndex == MoveSongSize)
-            resetAudio();
-    }
-    else if (soundType == CAPTUREsound){
-        audio_ptr -> ldata = capture_left[soundSampleIndex];
-        audio_ptr -> rdata = capture_right[soundSampleIndex];
-        soundSampleIndex++;
+          if (soundSampleIndex == CaptureSongSize)
+              disableAudio();
+      }
+      else if(soundType == CHECKsound){
+          audio_ptr -> ldata = check_left[soundSampleIndex];
+          audio_ptr -> rdata = check_right[soundSampleIndex];
+          soundSampleIndex++;
 
-        if (soundSampleIndex == CaptureSongSize)
-            disableAudio();
-    }
-    else if(soundType == CHECKsound){
-        audio_ptr -> ldata = check_left[soundSampleIndex];
-        audio_ptr -> rdata = check_right[soundSampleIndex];
-        soundSampleIndex++;
-
-        if (soundSampleIndex == CheckSongSize)
-            disableAudio();
+          if (soundSampleIndex == CheckSongSize)
+              disableAudio();
+      }
     }
 }
 

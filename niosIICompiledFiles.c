@@ -7005,7 +7005,7 @@ void main(void)
   setupMouse();
   setupTimer();
   setupInterrupts();
-
+  resetAudio();
   
   while (1) {   
       //draw board
@@ -7049,14 +7049,25 @@ void main(void)
                 finalCol = moveCol;
                 checkLegality(finalRow, finalCol, &moveLegal);
                 if(moveLegal) {
+                  if(Board[finalRow][finalCol] != 'o') {
+                    soundType = CAPTUREsound;
+                  }
+                  else {
                     soundType = MOVEsound;
-                    enableAudio();
+                  }
                   update_board(startingRow, startingCol, finalRow, finalCol);
+                  if(is_checked(king_row, king_col)) {
+                    soundType = CHECKsound;
+                  }
+                  
+                  printf("MoveSound:%d CaptureSound: %d", (soundType == MOVEsound), (soundType == CAPTUREsound));
+
+                  enableAudio();
                   colour = colour == WHITE? BLACK: WHITE;//change colour
-                  printf("%d",check_endgame());
+                  //printf("%d",check_endgame());
                   if(check_endgame() == true) {
                     gameOver = 1;
-                    printf("Game is over");
+                    //printf("Game is over");
                   }
                   startedMove = 0;
                 }
@@ -7496,7 +7507,7 @@ void find_checking_piece() {
              k++) {
           int posy = king_row + k * i;
           int posx = king_col + k * j;
-          printf("%c \n", Board[posy][posx]);
+          //printf("%c \n", Board[posy][posx]);
           if (Board[posy][posx] > a && Board[posy][posx] != 'o')
             break;  // stop progressing when reaching our piece
           if (i == j || i == -j) {
@@ -8019,29 +8030,30 @@ void resetGame(){
 
 void audio_ISR() {
     audio* const audio_ptr = (audio*)0xFF203040;
+    while(audio_ptr->wsrc != 0) {
+      if (soundType == MOVEsound){
+          audio_ptr -> ldata = move_left[soundSampleIndex];
+          audio_ptr -> rdata = move_right[soundSampleIndex];
+          soundSampleIndex ++;
+          if (soundSampleIndex == MoveSongSize)
+              disableAudio();
+      }
+      else if (soundType == CAPTUREsound){
+          audio_ptr -> ldata = capture_left[soundSampleIndex];
+          audio_ptr -> rdata = capture_right[soundSampleIndex];
+          soundSampleIndex++;
 
-    if (soundType == MOVEsound){
-        audio_ptr -> ldata = move_left[soundSampleIndex];
-        audio_ptr -> rdata = move_right[soundSampleIndex];
-        soundSampleIndex ++;
-        if (soundSampleIndex == MoveSongSize)
-            resetAudio();
-    }
-    else if (soundType == CAPTUREsound){
-        audio_ptr -> ldata = capture_left[soundSampleIndex];
-        audio_ptr -> rdata = capture_right[soundSampleIndex];
-        soundSampleIndex++;
+          if (soundSampleIndex == CaptureSongSize)
+              disableAudio();
+      }
+      else if(soundType == CHECKsound){
+          audio_ptr -> ldata = check_left[soundSampleIndex];
+          audio_ptr -> rdata = check_right[soundSampleIndex];
+          soundSampleIndex++;
 
-        if (soundSampleIndex == CaptureSongSize)
-            disableAudio();
-    }
-    else if(soundType == CHECKsound){
-        audio_ptr -> ldata = check_left[soundSampleIndex];
-        audio_ptr -> rdata = check_right[soundSampleIndex];
-        soundSampleIndex++;
-
-        if (soundSampleIndex == CheckSongSize)
-            disableAudio();
+          if (soundSampleIndex == CheckSongSize)
+              disableAudio();
+      }
     }
 }
 
