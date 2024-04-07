@@ -79,4 +79,92 @@ char Board[8][8] = {
 'p', 'p', 'p', 'p', 'p', 'p', 'p', 'p', 
 'r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'}; //8x8 gameboard global variable
 
+gamepiece gameIcons[12] = {
+    [BlackPawn] = {
+        .type = 'P',
+        .width = 25,
+        .height = 30,
+        .img = blackPawn,
+        .imgW = blackPawnW
+    },
+    [BlackRook] = {
+        .type = 'R',
+        .width = 25,
+        .height = 27,
+        .img = blackRook,
+        .imgW = blackRookW
+    },
+    [BlackKnight] = {
+        .type = 'N',
+        .width = 30,
+        .height = 30,
+        .img = blackKnight,
+        .imgW = blackKnightW
+    },
+    [BlackBishop] = {
+        .type = 'B',
+        .width = 27,
+        .height = 27,
+        .img = blackBishop,
+        .imgW = blackBishopW
+    },
+    [BlackQueen] = {
+        .type = 'Q',
+        .width = 29,
+        .height = 27,
+        .img = blackQueen,
+        .imgW = blackQueenW
+    },
+    [BlackKing] = {
+        .type = 'K',
+        .width = 27,
+        .height = 27,
+        .img = blackKing,
+        .imgW = blackKingW
+    },
+    [WhitePawn] = {
+        .type = 'p',
+        .width = 25,
+        .height = 30,
+        .img = whitePawn,
+        .imgW = whitePawnW
+    },
+    [WhiteRook] = {
+        .type = 'r',
+        .width = 25,
+        .height = 27,
+        .img = whiteRook,
+        .imgW = whiteRookW
+    },
+    [WhiteKnight] = {
+        .type = 'n',
+        .width = 25,
+        .height = 27,
+        .img = whiteKnight,
+        .imgW = whiteKnightW
+    },
+    [WhiteBishop] = {
+        .type = 'b',
+        .width = 25,
+        .height = 25,
+        .img = whiteBishop,
+        .imgW = whiteBishopW
+    },
+    [WhiteQueen] = {
+        .type = 'q',
+        .width = 25,
+        .height = 23,
+        .img = whiteQueen,
+        .imgW = whiteQueenW
+    },
+    [WhiteKing] = {
+        .type = 'k',
+        .width = 25,
+        .height = 25,
+        .img = whiteKing,
+        .imgW = whiteKingW
+    }
+};
+
+
 #endif
