@@ -7056,6 +7056,7 @@ void main(void)
                     soundType = MOVEsound;
                   }
                   update_board(startingRow, startingCol, finalRow, finalCol);
+                  getKingPosition((colour == WHITE)? BLACK: WHITE);
                   if(is_checked(king_row, king_col)) {
                     soundType = CHECKsound;
                   }
@@ -7383,22 +7384,26 @@ void displayTime() {
  ******************************************************** BACKEND(CHESS LEGALITY) ****************************************************************
  ***************************************************************************************************************************/
 
-
-void genPotentialMoves(int row, int col) {
-  bool king_found = false;
-  bool checked = false;
-  for (int i = 0; i < 8 && !king_found; i++) {
+void getKingPosition(int kingColour) {
+   for (int i = 0; i < 8 && !king_found; i++) {
     for (int j = 0; j < 8 && !king_found; j++) {
-      if ((colour == WHITE && Board[i][j] == 'k') || (colour == BLACK && Board[i][j] == 'K')) {
+      if ((kingColour == WHITE && Board[i][j] == 'k') || (kingColour == BLACK && Board[i][j] == 'K')) {
         king_row = i;
         king_col = j;
         king_found = true; // Set the flag to indicate king is found
-        potential_moves(Board[row][col], row, col);
-        //print_potential_board();
-        check_potential_moves(Board[row][col], row, col);
       }
     }
   }
+  return;
+}
+
+
+void genPotentialMoves(int row, int col) {
+  bool checked = false;
+  getKingPosition(colour);
+  potential_moves(Board[row][col], row, col);
+  //print_potential_board();
+  check_potential_moves(Board[row][col], row, col);
 
   for (int i = 0; i < 8; i++) {
     for (int j = 0; j < 8; j++) {
@@ -8081,4 +8086,3 @@ void resetAudio() {
     audioPtr->control = 0;
     soundSampleIndex = 0;
 }
-
