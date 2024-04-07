@@ -6643,6 +6643,7 @@ do { dest = __builtin_rdctl(5); } while (0)
 #define CHECKsound 1
 #define CAPTUREsound 2
 #define GAMEOVERsound 3
+#define REMOVETHIS 1
 volatile int gameOver = 0;
 int mouseCount = MOUSEOFFSET;
 volatile int pixel_buffer_start; // global variable
@@ -7000,7 +7001,7 @@ void main(void)
   char finalRow, finalCol;
   char moveLegal = 0;
   volatile unsigned int* LEDs = (int*) LED_BASE;
-  *(LEDs) = (int)2;
+  *(LEDs) = 0;
   
   /* set front pixel buffer to Buffer 1 */
   *(pixel_ctrl_ptr + 1) = (int) &Buffer1; // first store the address in the  back buffer
@@ -7074,8 +7075,7 @@ void main(void)
                   }
                   colour = colour == WHITE? BLACK: WHITE;//change colour
                   //printf("%d",check_endgame());
-                  soundType = GAMEOVERsound;
-                  if(check_endgame() == true) {
+                  if(check_endgame() == true || REMOVETHIS) {
                     gameOver = 1;
                     soundType = GAMEOVERsound;
                     //printf("Game is over");
@@ -7194,29 +7194,25 @@ asm("addi sp, sp, 128");
 asm("eret");
 }
 
-void setupMouse() {
-  printf("MouseEnabled");
-	volatile int* PS2_ptr = (int *)PS2_BASE; 
-	*(PS2_ptr) = 0xFF;
-	*(PS2_ptr+1) = 1; //enable interrupt
-  mouseCount = MOUSEOFFSET;
-}
-
 void printBytes(char b1, char b2, char b3);
 void printBytes(char b1, char b2, char b3) {
   printf("BYTE1: %0x, BYTE2: %0x, BYTE3: %0x\n", b1, b2, b3);
 }
 
+void setupMouse() {
+	volatile int* PS2_ptr = (int *)PS2_BASE; 
+	*(PS2_ptr) = 0xFF;
+	*(PS2_ptr+1) = 1; //enable interrupt
+}
 
 void mouse_ISR() {
 	volatile int* PS2_ptr = (int *)PS2_BASE; 
 	int PS2_data, RVALID;
 	volatile int* LEDs = (int *)LED_BASE;
 	char byte1, byte2, byte3;
-  byte1 = (char)((mouseBuffer & 0xFF0000) >> 16);
-  byte2 = (char)((mouseBuffer & 0xFF00) >> 8);
-  byte3 = (char) (mouseBuffer & 0xFF);
-  
+    byte1 = (char)((mouseBuffer & 0xFF0000) >> 16);
+    byte2 = (char)((mouseBuffer & 0xFF00) >> 8);
+    byte3 = (char) (mouseBuffer & 0xFF);
 
 	PS2_data = *(PS2_ptr); // read the Data register in the PS/2 port 
 	RVALID = PS2_data & 0x8000; // extract the RVALID field
@@ -7225,50 +7221,38 @@ void mouse_ISR() {
 		byte1 = (char)byte2;
 		byte2 = (char)byte3;
 		byte3 = (char)(PS2_data & 0x0FF);
-    printf("MouseCount: %d\n", mouseCount);
-    printBytes(byte1, byte2, byte3);
-    if ((byte2 == (char)0xAA) && (byte3 == (char)0x00)){
-      // mouse inserted; initialize sending of data 
-      *(PS2_ptr) = 0xF4;
-      mouseCount = MOUSEOFFSET; //CHANGE BACK TO ZERO IF NOT WORKING
-      printf("Reset MOUSE");
-      return;
-    }
-		if(mouseCount == 3) {
-			if(byte1 == 0x8 || byte1 == 0x18 || byte1 == 0x28 || byte1 == 0x38) {
-				if((mousex != 319 || byte2 < 0 )&&(mousex != 0 || byte2 > 0)) {
-					mousex += byte2;
-				}
-				if((mousey != 239 || byte3 > 0 )&&(mousey != 0 || byte3 < 0)) {
-					mousey -= byte3;
-				}
-				mouseBuffer = 0;
+		if ((byte2 == (char)0xAA) && (byte3 == (char)0x00)) // mouse inserted; initialize sending of data 
+			*(PS2_ptr) = 0xF4;
+		else if(byte1 == 0x8 || byte1 == 0x18 || byte1 == 0x28 || byte1 == 0x38) {
+			if((mousex != 319 || byte2 < 0 )&&(mousex != 0 || byte2 > 0)) {
+				mousex += byte2;
 			}
-			else if(byte1 == 0x9 || byte1 == 0x19 || byte1 == 0x29 || byte1 == 0x39) {
-				if((mousex != 319 || byte2 < 0 )&&(mousex != 0 || byte2 > 0)) {
-					mousex += byte2;
-				}
-				if((mousey != 239 || byte3 > 0 )&&(mousey != 0 || byte3 < 0)) {
-					mousey -= byte3;
-				}
-				mousePressed = 1;
-				*(PS2_ptr+1) = 0;
-				mouseBuffer = 0;
-				//move has been selected
+			if((mousey != 239 || byte3 > 0 )&&(mousey != 0 || byte3 < 0)) {
+				mousey -= byte3;
 			}
-			else if(byte1 == 0xA || byte1 == 0x1A || byte1 == 0x2A || byte1 == 0x3A) {
-				mousePressed = 1;
-				mouseBuffer = 0;
-				*(PS2_ptr+1) = 0;
-				undoMove = 1;
-	
-			}	//for checking if right clicker is pressed in that case reset their move
-			mouseCount = 1;
-			
+			mouseBuffer = 0;
 		}
+		else if(byte1 == 0x9 || byte1 == 0x19 || byte1 == 0x29 || byte1 == 0x39) {
+			if((mousex != 319 || byte2 < 0 )&&(mousex != 0 || byte2 > 0)) {
+				mousex += byte2;
+			}
+			if((mousey != 239 || byte3 > 0 )&&(mousey != 0 || byte3 < 0)) {
+				mousey -= byte3;
+			}
+			mousePressed = 1;
+			*(PS2_ptr+1) = 0;
+			mouseBuffer = 0;
+			//move has been selected
+		}
+		else if(byte1 == 0xA || byte1 == 0x1A || byte1 == 0x2A || byte1 == 0x3A) {
+			mousePressed = 1;
+			mouseBuffer = 0;
+			*(PS2_ptr+1) = 0;
+			undoMove = 1;
+
+		}	//for checking if right clicker is pressed in that case reset their move
 		else {
 			mouseBuffer = ((byte1&0xFF) << 16) + ((byte2&0xFF) << 8) + (byte3&0xFF);
-			mouseCount++;
 		}
 	}
 	return;
@@ -8056,7 +8040,7 @@ void resetGame(){
     *(LEDs) = (int)2;
   }
   screenNum = 0;
-
+  gameOver = 0;
 }
 
 void audio_ISR() {
