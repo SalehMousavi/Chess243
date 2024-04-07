@@ -5,6 +5,7 @@
 void setupMouse() {
 	volatile int* PS2_ptr = (int *)PS2_BASE; 
 	*(PS2_ptr) = 0xFF;
+	mouseCount = 0;
 	*(PS2_ptr+1) = 1; //enable interrupt
 }
 
@@ -24,13 +25,14 @@ void mouse_ISR() {
 		byte1 = (char)byte2;
 		byte2 = (char)byte3;
 		byte3 = (char)(PS2_data & 0x0FF);
+    if ((byte2 == (char)0xAA) && (byte3 == (char)0x00)){
+      // mouse inserted; initialize sending of data 
+      *(PS2_ptr) = 0xF4;
+      mouseCount = 0;
+      return;
+    }
 		if(mouseCount == 3) {
-			if ((byte2 == (char)0xAA) && (byte3 == (char)0x00)){
-				// mouse inserted; initialize sending of data 
-				*(PS2_ptr) = 0xF4;
-				mouseCount = 0;
-			}
-			else if(byte1 == 0x8 || byte1 == 0x18 || byte1 == 0x28 || byte1 == 0x38) {
+			if(byte1 == 0x8 || byte1 == 0x18 || byte1 == 0x28 || byte1 == 0x38) {
 				if((mousex != 319 || byte2 < 0 )&&(mousex != 0 || byte2 > 0)) {
 					mousex += byte2;
 				}

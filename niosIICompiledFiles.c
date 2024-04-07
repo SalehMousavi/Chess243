@@ -6634,6 +6634,7 @@ do { dest = __builtin_rdctl(5); } while (0)
 #define WIDTH 30
 #define BLACK 0
 #define WHITE 1
+#define MOUSEOFFSET 0
 #define YELLOW 0xFFA0
 #define BLUE 0x6D9D
 #define Z 90
@@ -6641,7 +6642,9 @@ do { dest = __builtin_rdctl(5); } while (0)
 #define MOVEsound 0
 #define CHECKsound 1
 #define CAPTUREsound 2
+#define GAMEOVERsound 3
 volatile int gameOver = 0;
+int mouseCount = MOUSEOFFSET;
 volatile int pixel_buffer_start; // global variable
 short int Buffer1[240][512]; // 240 rows, 512 (320 + padding) columns
 short int Buffer2[240][512];
@@ -6659,9 +6662,9 @@ volatile int soundSampleIndex = 0;//index of sound array
 volatile int soundType = MOVEsound;//type of sound being played
 const int MoveSongSize = 1640;
 const int CaptureSongSize = 3368;
+bool promotion_enable;
 const int CheckSongSize = 2984;
 const int Talha_gameoverSizeSound= 35664;
-
 
 char potential_moves_board[8][8] = {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
                                     'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
@@ -6801,7 +6804,6 @@ gamepiece gameIcons[12] = {
 
 
 #endif
-
 
 void drawBoard() {
     int x, y;
@@ -7069,16 +7071,15 @@ void main(void)
                   if(is_checked(king_row, king_col)) {
                     soundType = CHECKsound;
                   }
-                  
-                  printf("MoveSound:%d CaptureSound: %d", (soundType == MOVEsound), (soundType == CAPTUREsound));
-
-                  enableAudio();
                   colour = colour == WHITE? BLACK: WHITE;//change colour
                   //printf("%d",check_endgame());
+                  soundType = GAMEOVERsound;
                   if(check_endgame() == true) {
                     gameOver = 1;
+                    soundType = GAMEOVERsound;
                     //printf("Game is over");
                   }
+                  enableAudio();
                   startedMove = 0;
                 }
                 else {
@@ -7193,19 +7194,28 @@ asm("eret");
 }
 
 void setupMouse() {
+  printf("MouseEnabled");
 	volatile int* PS2_ptr = (int *)PS2_BASE; 
 	*(PS2_ptr) = 0xFF;
 	*(PS2_ptr+1) = 1; //enable interrupt
+  mouseCount = MOUSEOFFSET;
 }
+
+void printBytes(char b1, char b2, char b3);
+void printBytes(char b1, char b2, char b3) {
+  printf("BYTE1: %0x, BYTE2: %0x, BYTE3: %0x\n", b1, b2, b3);
+}
+
 
 void mouse_ISR() {
 	volatile int* PS2_ptr = (int *)PS2_BASE; 
 	int PS2_data, RVALID;
 	volatile int* LEDs = (int *)LED_BASE;
 	char byte1, byte2, byte3;
-    byte1 = (char)((mouseBuffer & 0xFF0000) >> 16);
-    byte2 = (char)((mouseBuffer & 0xFF00) >> 8);
-    byte3 = (char) (mouseBuffer & 0xFF);
+  byte1 = (char)((mouseBuffer & 0xFF0000) >> 16);
+  byte2 = (char)((mouseBuffer & 0xFF00) >> 8);
+  byte3 = (char) (mouseBuffer & 0xFF);
+  
 
 	PS2_data = *(PS2_ptr); // read the Data register in the PS/2 port 
 	RVALID = PS2_data & 0x8000; // extract the RVALID field
@@ -7214,38 +7224,50 @@ void mouse_ISR() {
 		byte1 = (char)byte2;
 		byte2 = (char)byte3;
 		byte3 = (char)(PS2_data & 0x0FF);
-		if ((byte2 == (char)0xAA) && (byte3 == (char)0x00)) // mouse inserted; initialize sending of data 
-			*(PS2_ptr) = 0xF4;
-		else if(byte1 == 0x8 || byte1 == 0x18 || byte1 == 0x28 || byte1 == 0x38) {
-			if((mousex != 319 || byte2 < 0 )&&(mousex != 0 || byte2 > 0)) {
-				mousex += byte2;
+    printf("MouseCount: %d\n", mouseCount);
+    printBytes(byte1, byte2, byte3);
+    if ((byte2 == (char)0xAA) && (byte3 == (char)0x00)){
+      // mouse inserted; initialize sending of data 
+      *(PS2_ptr) = 0xF4;
+      mouseCount = MOUSEOFFSET; //CHANGE BACK TO ZERO IF NOT WORKING
+      printf("Reset MOUSE");
+      return;
+    }
+		if(mouseCount == 3) {
+			if(byte1 == 0x8 || byte1 == 0x18 || byte1 == 0x28 || byte1 == 0x38) {
+				if((mousex != 319 || byte2 < 0 )&&(mousex != 0 || byte2 > 0)) {
+					mousex += byte2;
+				}
+				if((mousey != 239 || byte3 > 0 )&&(mousey != 0 || byte3 < 0)) {
+					mousey -= byte3;
+				}
+				mouseBuffer = 0;
 			}
-			if((mousey != 239 || byte3 > 0 )&&(mousey != 0 || byte3 < 0)) {
-				mousey -= byte3;
+			else if(byte1 == 0x9 || byte1 == 0x19 || byte1 == 0x29 || byte1 == 0x39) {
+				if((mousex != 319 || byte2 < 0 )&&(mousex != 0 || byte2 > 0)) {
+					mousex += byte2;
+				}
+				if((mousey != 239 || byte3 > 0 )&&(mousey != 0 || byte3 < 0)) {
+					mousey -= byte3;
+				}
+				mousePressed = 1;
+				*(PS2_ptr+1) = 0;
+				mouseBuffer = 0;
+				//move has been selected
 			}
-			mouseBuffer = 0;
+			else if(byte1 == 0xA || byte1 == 0x1A || byte1 == 0x2A || byte1 == 0x3A) {
+				mousePressed = 1;
+				mouseBuffer = 0;
+				*(PS2_ptr+1) = 0;
+				undoMove = 1;
+	
+			}	//for checking if right clicker is pressed in that case reset their move
+			mouseCount = 1;
+			
 		}
-		else if(byte1 == 0x9 || byte1 == 0x19 || byte1 == 0x29 || byte1 == 0x39) {
-			if((mousex != 319 || byte2 < 0 )&&(mousex != 0 || byte2 > 0)) {
-				mousex += byte2;
-			}
-			if((mousey != 239 || byte3 > 0 )&&(mousey != 0 || byte3 < 0)) {
-				mousey -= byte3;
-			}
-			mousePressed = 1;
-			*(PS2_ptr+1) = 0;
-			mouseBuffer = 0;
-			//move has been selected
-		}
-		else if(byte1 == 0xA || byte1 == 0x1A || byte1 == 0x2A || byte1 == 0x3A) {
-			mousePressed = 1;
-			mouseBuffer = 0;
-			*(PS2_ptr+1) = 0;
-			undoMove = 1;
-
-		}	//for checking if right clicker is pressed in that case reset their move
 		else {
 			mouseBuffer = ((byte1&0xFF) << 16) + ((byte2&0xFF) << 8) + (byte3&0xFF);
+			mouseCount++;
 		}
 	}
 	return;
@@ -7522,7 +7544,7 @@ void find_checking_piece() {
              k++) {
           int posy = king_row + k * i;
           int posx = king_col + k * j;
-          printf("%c \n", Board[posy][posx]);
+          //printf("%c \n", Board[posy][posx]);
           if (Board[posy][posx] > a && Board[posy][posx] != 'o')
             break;  // stop progressing when reaching our piece
           if (i == j || i == -j) {
@@ -8075,7 +8097,7 @@ void audio_ISR() {
           if (soundSampleIndex == CheckSongSize)
               disableAudio();
       }
-      else if(soundType == gameover_sound){
+      else if(soundType == GAMEOVERsound){
         audio_ptr -> ldata = Talha_gameover[soundSampleIndex];
         audio_ptr -> rdata = Talha_gameover[soundSampleIndex];
         soundSampleIndex++;

@@ -13,6 +13,7 @@
 #define CHECKsound 1
 #define CAPTUREsound 2
 volatile int gameOver = 0;
+int mouseCount = 0;
 volatile int pixel_buffer_start; // global variable
 short int Buffer1[240][512]; // 240 rows, 512 (320 + padding) columns
 short int Buffer2[240][512];
@@ -32,7 +33,6 @@ const int MoveSongSize = 1640;
 const int CaptureSongSize = 3368;
 const int CheckSongSize = 2984;
 const int Talha_gameoverSizeSound= 35664;
-
 
 char potential_moves_board[8][8] = {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
                                     'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
