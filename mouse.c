@@ -25,8 +25,11 @@ void mouse_ISR() {
 		byte2 = (char)byte3;
 		byte3 = (char)(PS2_data & 0x0FF);
 		if(mouseCount == 3) {
-			if ((byte2 == (char)0xAA) && (byte3 == (char)0x00)) // mouse inserted; initialize sending of data 
+			if ((byte2 == (char)0xAA) && (byte3 == (char)0x00)){
+				// mouse inserted; initialize sending of data 
 				*(PS2_ptr) = 0xF4;
+				mouseCount = 0;
+			}
 			else if(byte1 == 0x8 || byte1 == 0x18 || byte1 == 0x28 || byte1 == 0x38) {
 				if((mousex != 319 || byte2 < 0 )&&(mousex != 0 || byte2 > 0)) {
 					mousex += byte2;
