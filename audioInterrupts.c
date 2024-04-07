@@ -6,13 +6,12 @@
 
 //so whenever you enter this ISR write a sample
 void audio_ISR() {
-    const audio*  audio_ptr = (audio*)0xFF203040;
+    audio* const audio_ptr = (audio*)0xFF203040;
 
     if (soundType == MOVEsound){
         audio_ptr -> ldata = move_left[soundSampleIndex];
         audio_ptr -> rdata = move_right[soundSampleIndex];
         soundSampleIndex ++;
-
         if (soundSampleIndex == MoveSongSize)
             resetAudio();
     }
@@ -40,6 +39,7 @@ void enableAudio() {//enable interrupts for audio
 }
 
 void disableAudio() {
+    volatile unsigned int* audioPtr = (int*) AUDIO_BASE;
     *(audioPtr) = 0;
     soundSampleIndex = 0;
 }
