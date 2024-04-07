@@ -6518,7 +6518,7 @@ void disableAudio();
 void resetAudio();
 void enableAudio();
 void audio_ISR();
-void getKingPosition(int kingColour)
+void getKingPosition(int kingColour);
 
 /* The assembly language code below handles CPU reset processing */
 void the_reset(void) __attribute__((section(".reset")));
