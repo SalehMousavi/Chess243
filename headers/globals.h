@@ -31,6 +31,8 @@ volatile int soundType = MOVEsound;//type of sound being played
 const int MoveSongSize = 1640;
 const int CaptureSongSize = 3368;
 const int CheckSongSize = 2984;
+const int Talha_gameoverSizeSound= 35664;
+
 
 char potential_moves_board[8][8] = {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
                                     'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
