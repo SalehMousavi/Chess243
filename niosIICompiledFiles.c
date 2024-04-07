@@ -6492,6 +6492,8 @@ void drawStartingScreen();
 void timer_ISR();
 void displayTime();
 void drawWinner();
+
+
 void check_turn();      // this checks if the turn inputed by the user is valid,
                 // swaps turns if it is
 void position_legal();  // this checks if the piece is at the start end
@@ -6504,20 +6506,18 @@ bool is_checked(int row, int col);  // this function checks if a player is check
                     // enter another checked postion
 void update_board(int posy, int posx, int row, int col);  // this function is called once the move has been cleared
 void potential_moves(char piece, int row, int col);
-
 bool check_endgame();
-
-void potential_moves_indirection(char piece, int dy, int dx, int row, int col);
-// finds the potnetial moves in a specific direction;
-
+void potential_moves_indirection(char piece, int dy, int dx, int row, int col); // finds the potnetial moves in a specific direction;
 void check_potential_moves(char piece, int Prow, int Pcol); // checks if the potential moves are correct
-
 void castling();
-
 bool is_capturable (int row, int col);
-
 void print_potential_board();
 void print_stored_moves();
+
+void disableAudio();
+void resetAudio();
+void enableAudio();
+void audio_ISR();
 
 /* The assembly language code below handles CPU reset processing */
 void the_reset(void) __attribute__((section(".reset")));
@@ -7851,7 +7851,7 @@ void castling(){
       potential_moves_board[7][6] = 'x'; }
     else if (!white_king_moved && !lw_rook_moved && Board[7][2] == 'o' && Board[7][3] == 'o' && Board[7][1] == 'o'){
       castling_enable = true;
-      potential_moves_board[7][1] = 'x'; }
+      potential_moves_board[7][2] = 'x'; }
     else
       castling_enable = false;
   }
@@ -7861,7 +7861,7 @@ void castling(){
       potential_moves_board[0][6] = 'x'; }
     else if (!black_king_moved && !lb_rook_moved && Board[0][2] == 'o' && Board[0][3] == 'o' && Board[0][1] == 'o'){
       castling_enable = true;
-      potential_moves_board[0][1] = 'x'; }
+      potential_moves_board[0][2] = 'x'; }
     else 
       castling_enable = false;
   }
@@ -7931,7 +7931,7 @@ void update_board(int posy, int posx, int row, int col) {
     Board[posy][posx +1] = 'o';
 
   /********************** CASTLING *********************/
-   else if (castling_enable && col == 2 && move[0] == 'k') {
+   else if (castling_enable && col == 2 && Board[posy][posx] == 'k') {
     Board[7][4] = 'o';  // move the king
     Board[7][2] = 'k';
     Board[7][0] = 'o';
@@ -7939,7 +7939,7 @@ void update_board(int posy, int posx, int row, int col) {
     white_king_moved = true;
     castling_enable = false;
     return;
-  } else if (castling_enable && col == 6 && move[0] == 'k') {
+  } else if (castling_enable && col == 6 && Board[posy][posx] == 'k') {
     Board[7][4] = 'o';  // move the king
     Board[7][6] = 'k';
     Board[7][7] = 'o';
@@ -7947,7 +7947,7 @@ void update_board(int posy, int posx, int row, int col) {
     white_king_moved = true;
     castling_enable = false;
     return;
-  } else if (castling_enable && col == 2 && move[0] == 'K') {
+  } else if (castling_enable && col == 2 && Board[posy][posx] == 'K') {
     Board[0][4] = 'o';  // move the king
     Board[0][2] = 'K';
     Board[0][0] = 'o';
@@ -7955,7 +7955,7 @@ void update_board(int posy, int posx, int row, int col) {
     black_king_moved = true;
     castling_enable = false;
     return;
-  } else if (castling_enable && col == 6 && move[0] == 'K') {
+  } else if (castling_enable && col == 6 && Board[posy][posx] == 'K') {
     Board[0][4] = 'o';  // move the king
     Board[0][6] = 'K';
     Board[0][7] = 'o';
@@ -8034,6 +8034,7 @@ void resetGame(){
 
 void audio_ISR() {
     audio* const audio_ptr = (audio*)0xFF203040;
+    
     while(audio_ptr->wsrc != 0) {
       if (soundType == MOVEsound){
           audio_ptr -> ldata = move_left[soundSampleIndex];
