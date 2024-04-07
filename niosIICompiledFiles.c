@@ -48,6 +48,7 @@ void potential_moves_indirection(char piece, int dy, int dx, int row, int col);
 
 void check_potential_moves(char piece, int Prow, int Pcol); // checks if the potential moves are correct
 
+void find_checking_piece();
 void castling();
 
 bool is_capturable (int row, int col);
