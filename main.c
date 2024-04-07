@@ -1,9 +1,3 @@
-#include <pieces.h>
-#include <numbers.h>
-#include <typedefs.h>
-#include <globals.h>
-#include <addressmap.h>
-
 void main(void)
 {
   short int moveRow, moveCol;
@@ -73,23 +67,26 @@ void main(void)
                 finalCol = moveCol;
                 checkLegality(finalRow, finalCol, &moveLegal);
                 if(moveLegal) {
-                  
-                  update_board(startingRow, startingCol, finalRow, finalCol);
-                  if(is_checked(king_row, king_col)) {
-                    soundType = CHECKsound;
-                  }
-                  else if(Board[finalRow][finalCol] != 'o') {
+                  if(Board[finalRow][finalCol] != 'o') {
                     soundType = CAPTUREsound;
                   }
                   else {
                     soundType = MOVEsound;
                   }
+                  update_board(startingRow, startingCol, finalRow, finalCol);
+                  getKingPosition((colour == WHITE)? BLACK: WHITE);
+                  if(is_checked(king_row, king_col)) {
+                    soundType = CHECKsound;
+                  }
+                  
+                  printf("MoveSound:%d CaptureSound: %d", (soundType == MOVEsound), (soundType == CAPTUREsound));
+
                   enableAudio();
                   colour = colour == WHITE? BLACK: WHITE;//change colour
-                  printf("%d",check_endgame());
+                  //printf("%d",check_endgame());
                   if(check_endgame() == true) {
                     gameOver = 1;
-                    printf("Game is over");
+                    //printf("Game is over");
                   }
                   startedMove = 0;
                 }
