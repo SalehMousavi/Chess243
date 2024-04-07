@@ -6694,6 +6694,7 @@ bool lb_rook_moved = false;
 bool white_king_moved = false;
 bool black_king_moved = false;
 bool castling_enable = false;
+bool promotion_enable = true;
 
 int wk_moves = 0; // used to determien end game
 int bk_moves = 0;
