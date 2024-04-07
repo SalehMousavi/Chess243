@@ -7950,61 +7950,6 @@ bool is_checked(int row, int col) {  // give location of king
 }
 
 
-bool is_checked(int row, int col) {  // give location of king
-  int posy, posx;
-  int kingColour = (Board[row][col] == 'K') ? BLACK : WHITE;
-  for (int i = -1; i < 2; i++) {
-    for (int j = -1; j < 2; j++) {
-      for (int k = 1; k < 8; k++) {
-        posy = row + (k * i);
-        posx = col + (k * j);
-        if (posy < 0 || posy > 7 || posx < 0 || posx > 7)
-          break;
-        else if(Board[posy][posx] != 'o') {
-          if(kingColour == BLACK) {
-            if (k == 1 && i == 1 && abs(j) == 1 && Board[posy][posx] == 'p')
-              return true;
-            else if (abs(i) == abs(j) && (Board[posy][posx] == 'q' || Board[posy][posx] == 'b'))
-              // checking diagonal direction
-              return true;
-
-            else if ((abs(i) == 0 || abs(j) == 0) &&
-                    (Board[posy][posx] == 'q' || Board[posy][posx] == 'r'))
-              // checking horizontal and vertical direction
-              return true;
-            else if (((abs(i) == 2 && abs(j) == 1) || (abs(i) == 1 && abs(j) == 2)) &&
-                Board[posy][posx] == 'n')
-              // checking for knights around the king
-              return true;
-            else
-              break;
-          }
-          else { // white
-            if (k == 1 && i == -1 && abs(j) == 1 && Board[posy][posx] == 'P')
-            return true;
-            else if (abs(i) == abs(j) && (Board[posy][posx] == 'Q' || Board[posy][posx] == 'B'))
-            // checking diagonal direction
-              return true;
-
-            else if ((abs(i) == 0 || abs(j) == 0) &&
-                   (Board[posy][posx] == 'Q' || Board[posy][posx] == 'R'))
-            // checking horizontal and vertical direction
-              return true;
-            else if (((abs(i) == 2 && abs(j) == 1) || (abs(i) == 1 && abs(j) == 2)) &&
-              Board[posy][posx] == 'N')
-            // checking for knights around the king
-              return true;
-            else 
-              break;
-          }
-        }
-      }
-    }
-  }
-  return false;
-}
-
-
 void update_board(int posy, int posx, int row, int col) {
   /************************ PROMOTION *********************/
   if ((colour == WHITE && Board[posy][posx] == 'p' && row == 0) ||
