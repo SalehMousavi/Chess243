@@ -6514,6 +6514,8 @@ bool is_capturable (int row, int col);
 void print_potential_board();
 void print_stored_moves();
 
+void find_checking_piece();
+
 void disableAudio();
 void resetAudio();
 void enableAudio();
