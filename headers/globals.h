@@ -28,6 +28,9 @@ volatile char colour = WHITE;
 int screenNum = 0; //0 starting screen 1 game
 volatile int soundSampleIndex = 0;//index of sound array
 volatile int soundType = MOVEsound;//type of sound being played
+const int MoveSongSize = 1640;
+const int CaptureSongSize = 3368;
+const int CheckSongSize = 2984;
 
 char potential_moves_board[8][8] = {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
                                     'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
