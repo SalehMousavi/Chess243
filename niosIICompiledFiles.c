@@ -7238,19 +7238,15 @@ void interrupt_handler(void) {
     else if(ipending & 0x1) {// else, ignore the interrupt
         timer_ISR();
     } 
+    else if(ipending & 0x40) {
+        audio_ISR();
+    }
     return; 
 }
 
-
 void setupInterrupts() {
-    NIOS2_WRITE_IENABLE(0x81);
+    NIOS2_WRITE_IENABLE(0xC1);
     NIOS2_WRITE_STATUS(1);
-    return;
-}
-
-void movePiece(int startingRow, int startingCol, int finalRow, int finalCol) {
-    Board[finalRow][finalCol] = Board[startingRow][startingCol];
-    Board[startingRow][startingCol] = 'o';
     return;
 }
 
@@ -7285,14 +7281,13 @@ void HEX_PS2(char b1, char b2, char b3) {
 	*(HEX5_HEX4_ptr) = *(int *)(hex_segs + 4); 
 }
 
-
 void timer_ISR() {
     volatile int * interval_timer_ptr = (int *)TIMER_BASE;
     *(interval_timer_ptr) = 0; // clear the interrupt
     if(screenNum == 0) {
-		  return;
-	  }
-    if(colour == WHITE){
+		return;
+	}
+	if(colour == WHITE){
         if(whiteTime == 0) {
 			whiteTime = 60*10;
 			gameOver = 1;
@@ -7327,47 +7322,6 @@ void displayTime() {
 	byte3 = 0;
     HEX_PS2(byte1, byte2, byte3);
     return;
-}
-
-
-void checkLegality(int finalRow, int finalCol, char* moveLegal) {
-   if(stored_moves[finalRow][finalCol] == 'x') {
-    *moveLegal = 1;
-   }
-   else {
-    *moveLegal = 0;
-   }
-    return;
-}
-
-void resetGame(){
-  volatile unsigned int* LEDs = (int*) LED_BASE;
-  char newBoard[8][8] = {'R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R',
-  'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P',
-  'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
-  'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
-  'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
-  'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
-  'p', 'p', 'p', 'p', 'p', 'p', 'p', 'p', 
-  'r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'};
-  
-  for (int i = 0; i < 8; i++) {
-    for (int j = 0; j < 8; j++) {
-      Board[i][j] = newBoard[i][j];
-    }
-  }
-  //reset the times;
-  blackTime = (10*60)-1;
-  whiteTime = (10*60)-1;
-  if(colour == WHITE) {
-    //black won
-    *(LEDs) = (int)1;
-  }
-  else {
-    *(LEDs) = (int)2;
-  }
-  screenNum = 0;
-
 }
 
 /***************************************************************************************************************************
@@ -7977,4 +7931,44 @@ void print_stored_moves(){
     }
     printf("\n");
   }
+}
+
+void checkLegality(int finalRow, int finalCol, char* moveLegal) {
+   if(stored_moves[finalRow][finalCol] == 'x') {
+    *moveLegal = 1;
+   }
+   else {
+    *moveLegal = 0;
+   }
+    return;
+}
+
+void resetGame(){
+  volatile unsigned int* LEDs = (int*) LED_BASE;
+  char newBoard[8][8] = {'R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R',
+  'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P',
+  'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
+  'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
+  'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
+  'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
+  'p', 'p', 'p', 'p', 'p', 'p', 'p', 'p', 
+  'r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'};
+  
+  for (int i = 0; i < 8; i++) {
+    for (int j = 0; j < 8; j++) {
+      Board[i][j] = newBoard[i][j];
+    }
+  }
+  //reset the times;
+  blackTime = (10*60)-1;
+  whiteTime = (10*60)-1;
+  if(colour == WHITE) {
+    //black won
+    *(LEDs) = (int)1;
+  }
+  else {
+    *(LEDs) = (int)2;
+  }
+  screenNum = 0;
+
 }

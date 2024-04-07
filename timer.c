@@ -38,7 +38,6 @@ void HEX_PS2(char b1, char b2, char b3) {
 	*(HEX5_HEX4_ptr) = *(int *)(hex_segs + 4); 
 }
 
-
 void timer_ISR() {
     volatile int * interval_timer_ptr = (int *)TIMER_BASE;
     *(interval_timer_ptr) = 0; // clear the interrupt

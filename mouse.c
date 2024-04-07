@@ -1,13 +1,12 @@
 #include <addressmap.h>
 #include <globals.h>
 
+
 void setupMouse() {
 	volatile int* PS2_ptr = (int *)PS2_BASE; 
 	*(PS2_ptr) = 0xFF;
 	*(PS2_ptr+1) = 1; //enable interrupt
 }
-
-
 
 void mouse_ISR() {
 	volatile int* PS2_ptr = (int *)PS2_BASE; 

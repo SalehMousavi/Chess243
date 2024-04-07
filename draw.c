@@ -3,137 +3,7 @@
 #include <typedefs.h>
 #include <pieces.h>
 #include <numbers.h>
-
-number numberIcons[8] = {
-    {
-        .width = 10,
-        .height = 23,
-        .img = Num1
-    },
-    {
-        .width = 10,
-        .height = 18,
-        .img = Num2
-    },
-    {
-        .width = 10,
-        .height = 18,
-        .img = Num3
-    },
-    {
-        .width = 10,
-        .height = 16,
-        .img = Num4
-    },
-    {
-        .width = 10,
-        .height = 19,
-        .img = Num5
-    },
-    {
-        .width = 10,
-        .height = 17,
-        .img = Num6
-    },
-    {
-        .width = 10,
-        .height = 17,
-        .img = Num7
-    },
-    {
-        .width = 10,
-        .height = 17,
-        .img = Num8
-    }
-
-};
-
-gamepiece gameIcons[12] = {
-    [BlackPawn] = {
-        .type = 'P',
-        .width = 25,
-        .height = 30,
-        .img = blackPawn,
-        .imgW = blackPawnW
-    },
-    [BlackRook] = {
-        .type = 'R',
-        .width = 25,
-        .height = 27,
-        .img = blackRook,
-        .imgW = blackRookW
-    },
-    [BlackKnight] = {
-        .type = 'N',
-        .width = 30,
-        .height = 30,
-        .img = blackKnight,
-        .imgW = blackKnightW
-    },
-    [BlackBishop] = {
-        .type = 'B',
-        .width = 27,
-        .height = 27,
-        .img = blackBishop,
-        .imgW = blackBishopW
-    },
-    [BlackQueen] = {
-        .type = 'Q',
-        .width = 29,
-        .height = 27,
-        .img = blackQueen,
-        .imgW = blackQueenW
-    },
-    [BlackKing] = {
-        .type = 'K',
-        .width = 27,
-        .height = 27,
-        .img = blackKing,
-        .imgW = blackKingW
-    },
-    [WhitePawn] = {
-        .type = 'p',
-        .width = 25,
-        .height = 30,
-        .img = whitePawn,
-        .imgW = whitePawnW
-    },
-    [WhiteRook] = {
-        .type = 'r',
-        .width = 25,
-        .height = 27,
-        .img = whiteRook,
-        .imgW = whiteRookW
-    },
-    [WhiteKnight] = {
-        .type = 'n',
-        .width = 25,
-        .height = 27,
-        .img = whiteKnight,
-        .imgW = whiteKnightW
-    },
-    [WhiteBishop] = {
-        .type = 'b',
-        .width = 25,
-        .height = 25,
-        .img = whiteBishop,
-        .imgW = whiteBishopW
-    },
-    [WhiteQueen] = {
-        .type = 'q',
-        .width = 25,
-        .height = 23,
-        .img = whiteQueen,
-        .imgW = whiteQueenW
-    },
-    [WhiteKing] = {
-        .type = 'k',
-        .width = 25,
-        .height = 25,
-        .img = whiteKing,
-        .imgW = whiteKingW
-    }
-};
+#include <addressmap.h>
 
 void drawBoard() {
     int x, y;
@@ -212,65 +82,65 @@ void map(int row, int col, int* x, int* y) {//rows from 0 to 7 and
 }
 
 void drawPiece(int row, int col, char piece) {
-    int x, y, background;
-    enum icon iconNum;
-    
-    map(row, col, &x, &y);
-    switch (piece)
-    {
-    case 'o':
-        return;
-    break;
-    case 'P':
-        iconNum = BlackPawn;
-    break;
-    case 'R':
-        iconNum = BlackRook;
-    break;
-    case 'N':
-        iconNum = BlackKnight;
-    break;
-    case 'B':
-        iconNum = BlackBishop;
-    break;
-    case 'Q':
-        iconNum = BlackQueen;
-    break;
-    case 'K':
-        iconNum = BlackKing; 
-    break;
-    case 'p':
-        iconNum = WhitePawn;
-    break;
-    case 'r':
-        iconNum = WhiteRook;
-    break;
-    case 'n':
-        iconNum = WhiteKnight;
-    break;
-    case 'b':
-        iconNum = WhiteBishop;
-    break;
-    case 'q':
-        iconNum = WhiteQueen;
-    break;
-    case 'k':
-        iconNum = WhiteKing; 
-    break;
+  int x, y, background;
+  enum icon iconNum;
+  
+  map(row, col, &x, &y);
+  switch (piece)
+  {
+  case 'o':
+      return;
+  break;
+  case 'P':
+      iconNum = BlackPawn;
+  break;
+  case 'R':
+      iconNum = BlackRook;
+  break;
+  case 'N':
+      iconNum = BlackKnight;
+  break;
+  case 'B':
+      iconNum = BlackBishop;
+  break;
+  case 'Q':
+      iconNum = BlackQueen;
+  break;
+  case 'K':
+      iconNum = BlackKing; 
+  break;
+  case 'p':
+      iconNum = WhitePawn;
+  break;
+  case 'r':
+      iconNum = WhiteRook;
+  break;
+  case 'n':
+      iconNum = WhiteKnight;
+  break;
+  case 'b':
+      iconNum = WhiteBishop;
+  break;
+  case 'q':
+      iconNum = WhiteQueen;
+  break;
+  case 'k':
+      iconNum = WhiteKing; 
+  break;
+  }
+  x += (WIDTH - gameIcons[iconNum].width)/2;
+  y += (HEIGHT - gameIcons[iconNum].height)/2;
+  background = (row + col) & 0b1; //background 1 == white
+  for (int i = 0; i < gameIcons[iconNum].width; i++) {
+      for(int j = 0; j < gameIcons[iconNum].height; j++) {
+          if(background == 0) {
+              plot_pixel(x+i, y+j,gameIcons[iconNum].imgW[((j*(gameIcons[iconNum].width))+i)]);
+          }
+    else {
+      plot_pixel(x+i, y+j,gameIcons[iconNum].img[((j*(gameIcons[iconNum].width))+i)]);
     }
-    x += (WIDTH - gameIcons[iconNum].width)/2;
-    y += (HEIGHT - gameIcons[iconNum].height)/2;
-    background = (row + col) & 0b1; //background 1 == white
-    for (int i = 0; i < gameIcons[iconNum].width; i++) {
-        for(int j = 0; j < gameIcons[iconNum].height; j++) {
-            if(background == 0) {
-                plot_pixel(x+i, y+j,gameIcons[iconNum].imgW[((j*(gameIcons[iconNum].width))+i)]);
-            }
-			else {
-				plot_pixel(x+i, y+j,gameIcons[iconNum].img[((j*(gameIcons[iconNum].width))+i)]);
-			}
-        }
-    }
+      }
+  }
 }
 
 void plot_pixel(int x, int y, short int line_color)
@@ -282,27 +152,41 @@ void plot_pixel(int x, int y, short int line_color)
 	}     
 }
 
-void drawSelection(int Row, int Col, char boxColour) {
-    //draw top bars
-    int x = 39 + Col*WIDTH;
-    int y = Row*HEIGHT;
-    //draw top bars
-    for (int i = 0; i < WIDTH; i++) {
-        plot_pixel(x+i, y, YELLOW);
-        plot_pixel(x+i, y+HEIGHT-1, boxColour);
-    }
-    //draw side bars
-    for (int i = 0; i < HEIGHT; i++) {
-        plot_pixel(x, y+i, YELLOW);
-        plot_pixel(x+WIDTH-1, y+i, boxColour);
-    }
-    return;
+void drawSelection(int Row, int Col, short int boxColour) {
+  //draw top bars
+  int x = 39 + Col*WIDTH;
+  int y = Row*HEIGHT;
+  //draw top bars
+  for (int i = 0; i < WIDTH; i++) {
+      plot_pixel(x+i, y, boxColour);
+      plot_pixel(x+i, y+HEIGHT-1, boxColour);
+  }
+  //draw side bars
+  for (int i = 0; i < HEIGHT; i++) {
+      plot_pixel(x, y+i, boxColour);
+      plot_pixel(x+WIDTH-1, y+i, boxColour);
+  }
+  return;
 }
 
 void drawStartingScreen() {
     for (int i = 0; i < 320; i++) {
         for (int j = 0; j < 240; j++) {
-            plot_pixel(i, j, chessloadingscreen[j*(240)+i]);
+            plot_pixel(i, j, chessloadingscreen[(j*(320))+i]);
+        }
+    }
+}
+
+void drawWinner() {
+  volatile unsigned int* LEDs = (int*) LED_BASE;
+  for (int i = 0; i < 120; i++) {
+        for (int j = 0; j < 29; j++) {
+          if(*LEDs == (int)1 && blackWins[(j*(120))+i] != (short int)0) {
+            plot_pixel(i+100, j+100, blackWins[(j*(120))+i]);
+          }
+          else if(*LEDs == (int)2 && whiteWins[(j*(120))+i] != (short int)0) {
+            plot_pixel(i+100, j+100, whiteWins[(j*(120))+i]);
+          }
         }
     }
 }
