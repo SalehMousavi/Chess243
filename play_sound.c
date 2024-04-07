@@ -222,6 +222,4 @@ void main() {
         audio_ptr -> ldata = audio_data2[i];
         audio_ptr -> rdata = audio_data2[i];
     }
-
-    printf("%i", sizeof(audio_data2));
 } 
