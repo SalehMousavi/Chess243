@@ -7,6 +7,9 @@
 #define WHITE 1
 #define YELLOW 0xFFA0
 #define BLUE 0xF0F0
+#define MOVEsound 0
+#define CHECKsound 1
+#define CAPTUREsound 2
 volatile int gameOver = 0;
 volatile int pixel_buffer_start; // global variable
 short int Buffer1[240][512]; // 240 rows, 512 (320 + padding) columns
@@ -21,6 +24,9 @@ volatile unsigned int blackTime = (10*60)-1;
 volatile unsigned int whiteTime = (10*60)-1;
 volatile char colour = WHITE; 
 int screenNum = 0; //0 starting screen 1 game
+volatile int soundSampleIndex = 0;
+volatile int soundType = MOVEsound;
+
 
 volatile char potential_moves_board[8][8] = {'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',
                                     'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o',

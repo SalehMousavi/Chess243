@@ -99,13 +99,15 @@ void interrupt_handler(void) {
     else if(ipending & 0x1) {// else, ignore the interrupt
         timer_ISR();
     } 
-    else if(ipending & )
+    else if(ipending & 0x40) {
+        audio_ISR();
+    }
     return; 
 }
 
 
 void setupInterrupts() {
-    NIOS2_WRITE_IENABLE(0x81);
+    NIOS2_WRITE_IENABLE(0xC1);
     NIOS2_WRITE_STATUS(1);
     return;
 }
