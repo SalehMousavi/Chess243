@@ -5,8 +5,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
-#define Z 90
-#define a 97
+
 
 /***************************************************************************************************************************
 ******************************************************** FUNCTIONS***********************************************************
@@ -164,6 +163,8 @@ do { dest = __builtin_rdctl(5); } while (0)
 #define WHITE 1
 #define YELLOW 0xFFA0
 #define BLUE 0x6D9D
+#define Z 90
+#define a 97
 volatile int gameOver = 0;
 volatile int pixel_buffer_start; // global variable
 short int Buffer1[240][512]; // 240 rows, 512 (320 + padding) columns
@@ -6830,65 +6831,65 @@ void map(int row, int col, int* x, int* y) {//rows from 0 to 7 and
 }
 
 void drawPiece(int row, int col, char piece) {
-    int x, y, background;
-    enum icon iconNum;
-    
-    map(row, col, &x, &y);
-    switch (piece)
-    {
-    case 'o':
-        return;
-    break;
-    case 'P':
-        iconNum = BlackPawn;
-    break;
-    case 'R':
-        iconNum = BlackRook;
-    break;
-    case 'N':
-        iconNum = BlackKnight;
-    break;
-    case 'B':
-        iconNum = BlackBishop;
-    break;
-    case 'Q':
-        iconNum = BlackQueen;
-    break;
-    case 'K':
-        iconNum = BlackKing; 
-    break;
-    case 'p':
-        iconNum = WhitePawn;
-    break;
-    case 'r':
-        iconNum = WhiteRook;
-    break;
-    case 'n':
-        iconNum = WhiteKnight;
-    break;
-    case 'b':
-        iconNum = WhiteBishop;
-    break;
-    case 'q':
-        iconNum = WhiteQueen;
-    break;
-    case 'k':
-        iconNum = WhiteKing; 
-    break;
+  int x, y, background;
+  enum icon iconNum;
+  
+  map(row, col, &x, &y);
+  switch (piece)
+  {
+  case 'o':
+      return;
+  break;
+  case 'P':
+      iconNum = BlackPawn;
+  break;
+  case 'R':
+      iconNum = BlackRook;
+  break;
+  case 'N':
+      iconNum = BlackKnight;
+  break;
+  case 'B':
+      iconNum = BlackBishop;
+  break;
+  case 'Q':
+      iconNum = BlackQueen;
+  break;
+  case 'K':
+      iconNum = BlackKing; 
+  break;
+  case 'p':
+      iconNum = WhitePawn;
+  break;
+  case 'r':
+      iconNum = WhiteRook;
+  break;
+  case 'n':
+      iconNum = WhiteKnight;
+  break;
+  case 'b':
+      iconNum = WhiteBishop;
+  break;
+  case 'q':
+      iconNum = WhiteQueen;
+  break;
+  case 'k':
+      iconNum = WhiteKing; 
+  break;
+  }
+  x += (WIDTH - gameIcons[iconNum].width)/2;
+  y += (HEIGHT - gameIcons[iconNum].height)/2;
+  background = (row + col) & 0b1; //background 1 == white
+  for (int i = 0; i < gameIcons[iconNum].width; i++) {
+      for(int j = 0; j < gameIcons[iconNum].height; j++) {
+          if(background == 0) {
+              plot_pixel(x+i, y+j,gameIcons[iconNum].imgW[((j*(gameIcons[iconNum].width))+i)]);
+          }
+    else {
+      plot_pixel(x+i, y+j,gameIcons[iconNum].img[((j*(gameIcons[iconNum].width))+i)]);
     }
-    x += (WIDTH - gameIcons[iconNum].width)/2;
-    y += (HEIGHT - gameIcons[iconNum].height)/2;
-    background = (row + col) & 0b1; //background 1 == white
-    for (int i = 0; i < gameIcons[iconNum].width; i++) {
-        for(int j = 0; j < gameIcons[iconNum].height; j++) {
-            if(background == 0) {
-                plot_pixel(x+i, y+j,gameIcons[iconNum].imgW[((j*(gameIcons[iconNum].width))+i)]);
-            }
-			else {
-				plot_pixel(x+i, y+j,gameIcons[iconNum].img[((j*(gameIcons[iconNum].width))+i)]);
-			}
-        }
-    }
+      }
+  }
 }
 
 void plot_pixel(int x, int y, short int line_color)
@@ -6938,7 +6939,6 @@ void drawWinner() {
         }
     }
 }
-
 
 void main(void)
 {
@@ -7672,8 +7672,7 @@ void potential_moves(char piece, int row, int col) {
         potential_moves_board[row + 1][col - 1] = 'x';
       break;
 
-    /******************************************************** ROOKS
-     * ***********************************************************/
+    /******************************************************** ROOKS ************************************************************/
     case 'r':
     case 'R':
 
@@ -7687,8 +7686,7 @@ void potential_moves(char piece, int row, int col) {
 
       break;
 
-    /******************************************************** KNIGHTS
-     * ***********************************************************/
+    /******************************************************** KNIGHTS ************************************************************/
     case 'n':
 
       for (int i = 0; (i < 8); i++) {
