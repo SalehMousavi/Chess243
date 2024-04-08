@@ -7084,7 +7084,6 @@ void main(void)
                   //printf("%d",check_endgame());
                   if(check_endgame() == true || REMOVETHIS) {
                     gameOver = 1;
-                    soundType = GAMEOVERsound;
                     //printf("Game is over");
                   }
                   enableAudio();
@@ -7103,6 +7102,8 @@ void main(void)
         }
         if(gameOver == 1) {
           resetGame();
+          soundType = GAMEOVERsound;
+          enableAudio();
         }
         break;
       }
