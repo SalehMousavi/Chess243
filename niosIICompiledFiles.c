@@ -7687,23 +7687,6 @@ void potential_moves(char piece, int row, int col) {
                   // be eliminated
       if (Board[row - 1][col + 1] < Z && Board[row - 1][col + 1] != 'K')
         potential_moves_board[row - 1][col + 1] = 'x';
-
-      // En Passant
-      if (Board[row][col - 1] < Z && Board[row][col - 1] == 'P') {
-        potential_moves_board[row - 1][col - 1] = 'x';
-
-        En_passant_enable = true;
-        En_passant[0] = row;
-        En_passant[1] = col;  // store location of En Passant pawn
-      }
-      if (Board[row][col + 1] < Z && Board[row][col + 1] == 'P') {
-        potential_moves_board[row - 1][col + 1] = 'x';
-
-        En_passant_enable = true;
-        En_passant[2] = row;
-        En_passant[3] = col;  // store location of En Passant pawn
-      }
-
       break;
 
     case 'P':
