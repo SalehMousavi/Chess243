@@ -6634,6 +6634,8 @@ do { dest = __builtin_rdctl(5); } while (0)
 #define WIDTH 30
 #define BLACK 0
 #define WHITE 1
+#define BLACKTIME ((10*60*100)-1)//how much time each player gets
+#define WHITETIME ((10*60*100)-1)
 #define MOUSEOFFSET 0
 #define YELLOW 0xFFA0
 #define BLUE 0x6D9D
@@ -6655,8 +6657,8 @@ volatile unsigned int mousey = 119;
 volatile unsigned int mousePressed = 0;//for indicating if mouse was pressed
 volatile unsigned int mouseBuffer;
 volatile unsigned int undoMove = 0;
-volatile unsigned int blackTime = (10*60)-1;
-volatile unsigned int whiteTime = (10*60)-1;
+volatile unsigned int blackTime = BLACKTIME;
+volatile unsigned int whiteTime = WHITETIME;
 volatile char colour = WHITE; 
 int screenNum = 0; //0 starting screen 1 game
 volatile int soundSampleIndex = 0;//index of sound array
@@ -7330,7 +7332,7 @@ void setupInterrupts() {
 void setupTimer() {//puts 1 second back on the timer
     volatile int * interval_timer_ptr = (int *)TIMER_BASE;
     *(interval_timer_ptr) = 0; // clear the interrupt
-    int counter = 100000000; // 1/(50 MHz) x (2500000) = 50 msec
+    int counter = 1000000; // 
     *(interval_timer_ptr + 0x2) = (counter & 0xFFFF);
     *(interval_timer_ptr + 0x3) = (counter >> 16) & 0xFFFF;
     *(interval_timer_ptr + 1) = 0x7;//turn on start and CONT
@@ -7366,37 +7368,41 @@ void timer_ISR() {
 	}
 	if(colour == WHITE){
         if(whiteTime == 0) {
-			whiteTime = 60*10;
+			whiteTime = WHITETIME;
 			gameOver = 1;
 		}
 		whiteTime -= 1;
     }
     else {
 		if(blackTime == 0) {
-			blackTime = 60*10;
+			blackTime = BLACKTIME;
 			gameOver = 1;
 		}
-        blackTime -= 1;
+      blackTime -= 1;
     }
     displayTime();
 }
 
 void displayTime() {
-    int minutes, secondsTens, seconds;
+    int minutes, secondsTens, seconds, tenthSeconds, hundredthSeconds;
 	if(colour == WHITE) {
-		minutes = whiteTime / 60;
-		secondsTens = (whiteTime - (minutes*60)) / 10;
-		seconds = (whiteTime - (minutes*60) - (secondsTens*10));
+		minutes = whiteTime / (60*100);
+		secondsTens = (whiteTime - (minutes*60*100)) / (10*100);
+		seconds = (whiteTime - (minutes*60*100) - (secondsTens*10*100))/100;
+    tenthSeconds = (whiteTime - (minutes*60*100) - (secondsTens*10*100)-(seconds*100))/10;
+    hundredthSeconds = (whiteTime - (minutes*60*100) - (secondsTens*10*100)-(seconds*100)-(tenthSeconds*10));
 	}
 	else {
-		minutes = blackTime / 60;
-		secondsTens = (blackTime - (minutes*60)) / 10;
-		seconds = (blackTime - (minutes*60) - (secondsTens*10));
+		minutes = blackTime / (60*100);
+		secondsTens = (blackTime - (minutes*60*100)) / (10*100);
+		seconds = (blackTime - (minutes*60*100) - (secondsTens*10*100))/100;
+    tenthSeconds = (blackTime - (minutes*60*100) - (secondsTens*10*100)-(seconds*100))/10;
+    hundredthSeconds = (blackTime - (minutes*60*100) - (secondsTens*10*100)-(seconds*100)-(tenthSeconds*10));
 	}
     char byte1, byte2, byte3;
     byte1 = ((minutes&0xF));
     byte2 = ((secondsTens & 0xF) << 4) | (seconds&0xF);
-	byte3 = 0;
+	  byte3 = ((tenthSeconds & 0xF) << 4) | (hundredthSeconds&0xF);
     HEX_PS2(byte1, byte2, byte3);
     return;
 }
@@ -8055,8 +8061,8 @@ void resetGame(){
     }
   }
   //reset the times;
-  blackTime = (10*60)-1;
-  whiteTime = (10*60)-1;
+  blackTime = BLACKTIME;
+  whiteTime = WHITETIME;
   if(colour == WHITE) {
     //black won
     *(LEDs) = (int)1;
