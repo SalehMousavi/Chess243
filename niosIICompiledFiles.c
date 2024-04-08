@@ -7815,8 +7815,6 @@ void castling(){
     if (!white_king_moved && !lw_rook_moved && Board[7][3] == 'o' && Board[7][2] == 'o' && Board[7][1] == 'o'){
       castling_enable = true;
       potential_moves_board[7][2] = 'x'; }
-    else
-      castling_enable = false;
   }
   else {
     if (!black_king_moved && !rb_rook_moved && Board[0][5] == 'o' && Board[0][6] == 'o'){
@@ -7825,8 +7823,6 @@ void castling(){
     if (!black_king_moved && !lb_rook_moved && Board[0][3] == 'o' && Board[0][2] == 'o' && Board[0][1] == 'o'){
       castling_enable = true;
       potential_moves_board[0][2] = 'x'; }
-    else 
-      castling_enable = false;
   }
 }
 
