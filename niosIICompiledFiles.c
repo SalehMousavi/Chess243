@@ -7630,13 +7630,13 @@ bool is_capturable(int row, int col) {  // give location of the checking piece
     for (int j = 0; j < 8; j++) {
       if (Board[i][j] == 'k' || Board[i][j] == 'K' || Board[i][j] == 'o')
         continue;
-      if (colour == BLACK && Board[i][j] > a) { // white turn
+      if (colour == WHITE && Board[i][j] > a) { // white turn
         // piece captured is black and looking for white pieces
         potential_moves(Board[i][j], i, j);  // find all potential moves for that piece
         if (potential_moves_board[row][col] == 'x')
           return true;
 
-      } else if (colour == WHITE && Board[i][j] < Z) { // blacks turn
+      } else if (colour == BLACK && Board[i][j] < Z) { // blacks turn
         // only check the potential moves for black pieces
 
         potential_moves(Board[i][j], i, j);  // find all potential moves for that piece
