@@ -6644,6 +6644,7 @@ do { dest = __builtin_rdctl(5); } while (0)
 #define CAPTUREsound 2
 #define GAMEOVERsound 3
 #define REMOVETHIS 0
+#define RED 0xf800
 volatile int gameOver = 0;
 volatile int pixel_buffer_start; // global variable
 short int Buffer1[240][512]; // 240 rows, 512 (320 + padding) columns
@@ -6662,7 +6663,7 @@ volatile int soundSampleIndex = 0;//index of sound array
 volatile int soundType = MOVEsound;//type of sound being played
 const int MoveSongSize = 1640;
 const int CaptureSongSize = 3368;
-bool promotion_enable;
+bool isChecked = false;
 const int CheckSongSize = 2984;
 const int Talha_gameoverSizeSound= 35664;
 
@@ -6694,7 +6695,6 @@ bool lb_rook_moved = false;
 bool white_king_moved = false;
 bool black_king_moved = false;
 bool castling_enable = false;
-bool promotion_enable = true;
 
 int wk_moves = 0; // used to determien end game
 int bk_moves = 0;
@@ -7046,6 +7046,11 @@ void main(void)
             }
           }
         }
+        if(startedMove == 0 && isChecked) {
+          getKingPosition(colour);
+          drawSelection(king_row,king_col, RED);
+          isChecked = false;
+        }
         drawMouse();
         if(mousePressed) {
             getMove(&moveRow, &moveCol); //get the move position
@@ -7071,6 +7076,7 @@ void main(void)
                   getKingPosition((colour == WHITE)? BLACK: WHITE);
                   if(is_checked(king_row, king_col)) {
                     soundType = CHECKsound;
+                    isChecked = true;
                   }
                   colour = colour == WHITE? BLACK: WHITE;//change colour
                   //printf("%d",check_endgame());
@@ -7955,10 +7961,11 @@ bool is_checked(int row, int col) {  // give location of king
 void update_board(int posy, int posx, int row, int col) {
   /************************ PROMOTION *********************/
   if ((colour == WHITE && Board[posy][posx] == 'p' && row == 0) ||
-  (colour == BLACK && Board[posy][posx] == 'P' && row == 7))
-    promotion_enable = true;
-
-
+  (colour == BLACK && Board[posy][posx] == 'P' && row == 7)) {
+    Board[row][col] = (Board[posy][posx] == 'P')? 'Q' : 'q';
+    Board[posy][posx] = 'o';
+    return;
+  }
   /********************** CASTLING *********************/
    if (castling_enable && col == 2 && Board[posy][posx] == 'k') {
     Board[7][4] = 'o';  // move the king

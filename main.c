@@ -56,6 +56,10 @@ void main(void)
             }
           }
         }
+        if(startedMove == 0 && isChecked) {
+          getKingPosition(colour);
+          drawSelection(king_row,king_col,RED);
+        }
         drawMouse();
         if(mousePressed) {
             getMove(&moveRow, &moveCol); //get the move position
@@ -81,6 +85,7 @@ void main(void)
                   getKingPosition((colour == WHITE)? BLACK: WHITE);
                   if(is_checked(king_row, king_col)) {
                     soundType = CHECKsound;
+                    isChecked = true;
                   }
                   
                   printf("MoveSound:%d CaptureSound: %d", (soundType == MOVEsound), (soundType == CAPTUREsound));
