@@ -7822,7 +7822,7 @@ void castling(){
     if (!black_king_moved && !rb_rook_moved && Board[0][5] == 'o' && Board[0][6] == 'o'){
       castling_enable = true;
       potential_moves_board[0][6] = 'x'; }
-    if (!black_king_moved && !lb_rook_moved && Board[0][2] == 'o' && Board[0][3] == 'o' && Board[0][1] == 'o'){
+    if (!black_king_moved && !lb_rook_moved && Board[0][3] == 'o' && Board[0][2] == 'o' && Board[0][1] == 'o'){
       castling_enable = true;
       potential_moves_board[0][2] = 'x'; }
     else 
@@ -7964,7 +7964,7 @@ void update_board(int posy, int posx, int row, int col) {
 
 
   /********************** CASTLING *********************/
-   else if (castling_enable && col == 2 && Board[posy][posx] == 'k') {
+   if (castling_enable && col == 2 && Board[posy][posx] == 'k') {
     Board[7][4] = 'o';  // move the king
     Board[7][2] = 'k';
     Board[7][0] = 'o';
@@ -7972,15 +7972,15 @@ void update_board(int posy, int posx, int row, int col) {
     white_king_moved = true;
     castling_enable = false;
     return;
-  } else if (castling_enable && col == 6 && Board[posy][posx] == 'k') {
+  } if (castling_enable && col == 6 && Board[posy][posx] == 'k') {
     Board[7][4] = 'o';  // move the king
     Board[7][6] = 'k';
     Board[7][7] = 'o';
     Board[7][5] = 'r';
     white_king_moved = true;
     castling_enable = false;
-    return;
-  } else if (castling_enable && col == 2 && Board[posy][posx] == 'K') {
+   return;
+  } if (castling_enable && col == 2 && Board[posy][posx] == 'K') {
     Board[0][4] = 'o';  // move the king
     Board[0][2] = 'K';
     Board[0][0] = 'o';
@@ -7988,7 +7988,7 @@ void update_board(int posy, int posx, int row, int col) {
     black_king_moved = true;
     castling_enable = false;
     return;
-  } else if (castling_enable && col == 6 && Board[posy][posx] == 'K') {
+  } if (castling_enable && col == 6 && Board[posy][posx] == 'K') {
     Board[0][4] = 'o';  // move the king
     Board[0][6] = 'K';
     Board[0][7] = 'o';
